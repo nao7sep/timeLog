@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32630.192
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "timeLog", "timeLog\timeLog.csproj", "{629DF5FD-5EA0-4639-ACB6-7E8BA2352901}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{629DF5FD-5EA0-4639-ACB6-7E8BA2352901}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{629DF5FD-5EA0-4639-ACB6-7E8BA2352901}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{629DF5FD-5EA0-4639-ACB6-7E8BA2352901}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{629DF5FD-5EA0-4639-ACB6-7E8BA2352901}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {757A56D2-F6D6-4E0C-A1B2-269EA1D79EB0}
+	EndGlobalSection
+EndGlobal
