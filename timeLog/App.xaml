@@ -1,8 +1,8 @@
-﻿<Application x:Class="timeLog.App"
+﻿<Application x:Name="mApp" x:Class="timeLog.App"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:timeLog"
-        StartupUri="MainWindow.xaml">
+        StartupUri="MainWindow.xaml" SessionEnding="mApp_SessionEnding" Exit="mApp_Exit">
     <Application.Resources>
     </Application.Resources>
 </Application>
