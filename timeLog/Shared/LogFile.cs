@@ -46,5 +46,11 @@ namespace timeLog
             Shared.AddLogToFile (FilePath, log);
             Logs.Add (log.StartUtc, log);
         }
+
+        public void DeleteLog (LogInfo log)
+        {
+            Shared.DeleteLogFromFile (FilePath, log);
+            Logs.Remove (log.StartUtc); // 甘いが大丈夫
+        }
     }
 }

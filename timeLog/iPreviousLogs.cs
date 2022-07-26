@@ -15,7 +15,7 @@ namespace timeLog
 
     public class iPreviousLogs
     {
-        public readonly static LogFile LogFile = new LogFile (Shared.MapPath ("Logs.txt"));
+        public readonly static LogFile LogFile = new LogFile (Shared.MapPath ("timeLogs.txt"));
 
         // LogFile.Logs とかぶるが、そちらは SortedList という違いがある
         // Shared 内のものを API 的に考えるなら、ログデータの順序は保証されなければならない
@@ -46,6 +46,12 @@ namespace timeLog
         {
             LogFile.AddLog (log);
             Logs.Add (log);
+        }
+
+        public static void DeleteLog (LogInfo log)
+        {
+            LogFile.DeleteLog (log);
+            Logs.Remove (log);
         }
     }
 }

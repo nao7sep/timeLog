@@ -132,6 +132,31 @@ namespace timeLog
             return xBadChunks;
         }
 
+        // 追加が削除より圧倒的に多いプログラムなので追記型の実装を行った
+        // つまり、1000件のデータに1件を追加するだけで1001件の（再）出力にしない
+        // その上での削除の実装なので、こちらは追加ほど低コストでない
+
+        public static void DeleteLogFromFile (string filePath, LogInfo log)
+        {
+            if (Path.IsPathFullyQualified (filePath) == false)
+                throw new InvalidOperationException ();
+
+            string xChunk = log.ToChunk ();
+
+            // ファイルが存在しなければ落とす
+            // 完全に一致するものだけを除外
+
+            var xChunks = StringToParagraphs (File.ReadAllText (filePath, Encoding.UTF8)).
+                Select (x => x + Environment.NewLine).
+                Where (x => x.Equals (xChunk, StringComparison.Ordinal) == false);
+
+            if (xChunks.Any ())
+                File.WriteAllText (filePath, string.Join (Environment.NewLine, xChunks), Encoding.UTF8);
+
+            // 空でも BOM 分で空行の処理がおかしくなるので消す
+            else File.Delete (filePath);
+        }
+
         private static string? mAppDirectoryPath = null;
 
         public static string AppDirectoryPath

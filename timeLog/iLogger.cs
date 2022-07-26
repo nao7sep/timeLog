@@ -9,7 +9,7 @@ namespace timeLog
 {
     internal static class iLogger
     {
-        public static readonly FileInfo LogFile = new FileInfo (Shared.MapPath ("Errors.log"));
+        public static readonly FileInfo LogFile = new FileInfo (Shared.MapPath ("timeLog.Errors.txt"));
 
         public static void WriteSafe (string value)
         {
