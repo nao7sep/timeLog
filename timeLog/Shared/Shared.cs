@@ -167,15 +167,44 @@ namespace timeLog
 
         public static string TimeSpanToString (TimeSpan value)
         {
-            long xMinutes = (long) value.TotalMinutes;
+            long xSeconds = (long) value.TotalSeconds;
 
-            // 「1時間0分」は「1時間」でもよさそうだが、
-            //     端数が切り捨てられたのでないことを一目瞭然に
+            // 最初は「時」と「分」だけだったが、2～3分、早ければ1分未満で終わるタスクもある
+            // そのとき、59秒が「0分」となったり、1分59分が「1分」となったりするのでは誤差が大きい
 
-            if (xMinutes >= 60)
-                return FormattableString.Invariant ($"{xMinutes / 60}時間{xMinutes % 60}分");
+            if (xSeconds >= 3600)
+                return FormattableString.Invariant ($"{xSeconds / 3600}時間{xSeconds % 3600 / 60}分");
 
-            else return FormattableString.Invariant ($"{xMinutes}分");
+            else if (xSeconds >= 600)
+                return FormattableString.Invariant ($"{xSeconds / 60}分");
+
+            else if (xSeconds >= 60)
+                return FormattableString.Invariant ($"{xSeconds / 60}分{xSeconds % 60}秒");
+
+            else return FormattableString.Invariant ($"{xSeconds}秒");
+        }
+
+        public static string IndentLines (string value, int depth)
+        {
+            List <string> xLines = new List <string> ();
+
+            using (StringReader xReader = new StringReader (value))
+            {
+                string? xLine;
+
+                while ((xLine = xReader.ReadLine ()) != null)
+                    xLines.Add (xLine.TrimEnd ());
+            }
+
+            string xIndents = string.Concat (Enumerable.Repeat ("\x20\x20\x20\x20", depth));
+
+            return string.Join (Environment.NewLine, xLines.Select (x =>
+            {
+                if (x.Length > 0)
+                    return xIndents + x;
+
+                else return x;
+            }));
         }
     }
 }
