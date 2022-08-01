@@ -153,6 +153,9 @@ namespace timeLog
                 if (iPreviousLogs.LogFile.BadChunks.Count > 0)
                     MessageBox.Show (this, "timeLogs.txt に問題があります。");
 
+                // 紆余曲折については taskKiller のログに
+                mPreviousTasks.ItemsSource = iPreviousLogs.Logs;
+
                 iUpdateControls ();
 
                 mNextTasks.Focus ();

@@ -25,7 +25,7 @@
         </StackPanel>
         <Label x:Name="mElapsedTimeLabel" Content="経過時間:" HorizontalAlignment="Left" Margin="10,326,0,0" VerticalAlignment="Top" Height="24" Padding="5,0" VerticalContentAlignment="Center" />
         <TextBox x:Name="mElapsedTime" Margin="10,350,5,0" VerticalAlignment="Top" Height="100" FontSize="36" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="#F0F0F0" IsTabStop="False" IsReadOnly="True" />
-        <ListBox Grid.Column="1" x:Name="mPreviousTasks" Margin="5,10,10,39" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding Source={x:Static local:iPreviousLogs.Logs}}" SelectionChanged="mPreviousTasks_SelectionChanged" KeyDown="mPreviousTasks_KeyDown">
+        <ListBox Grid.Column="1" x:Name="mPreviousTasks" Margin="5,10,10,39" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="mPreviousTasks_SelectionChanged" KeyDown="mPreviousTasks_KeyDown">
             <ListBox.ItemContainerStyle>
                 <Style TargetType="ListBoxItem">
                     <Setter Property="BorderBrush" Value="#FFABADB3" />

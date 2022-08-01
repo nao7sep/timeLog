@@ -11,7 +11,7 @@ namespace timeLog
     {
         public static readonly FileInfo LogFile = new FileInfo (Shared.MapPath ("timeLog.Errors.txt"));
 
-        public static void WriteSafe (string value)
+        public static void WriteSafely (string value)
         {
             try
             {
@@ -28,7 +28,7 @@ namespace timeLog
 
             catch
             {
-                // *Safe メソッドなので何もしない
+                // *Safely メソッドなので何もしない
             }
         }
     }

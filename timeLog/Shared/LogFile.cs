@@ -36,7 +36,7 @@ namespace timeLog
         public LogFile (string filePath)
         {
             if (Path.IsPathFullyQualified (filePath) == false)
-                throw new InvalidOperationException ();
+                throw new ArgumentException ();
 
             FilePath = filePath;
         }

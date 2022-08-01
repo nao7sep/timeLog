@@ -41,7 +41,7 @@ namespace timeLog
         public static void AddLogToFile (string filePath, LogInfo log)
         {
             if (Path.IsPathFullyQualified (filePath) == false)
-                throw new InvalidOperationException ();
+                throw new ArgumentException ();
 
             FileInfo xFile = new FileInfo (filePath);
 
@@ -109,7 +109,7 @@ namespace timeLog
         public static List <string> LoadLogFile (string filePath, out SortedList <DateTime, LogInfo> result)
         {
             if (Path.IsPathFullyQualified (filePath) == false)
-                throw new InvalidOperationException ();
+                throw new ArgumentException ();
 
             var xLogs = new SortedList <DateTime, LogInfo> ();
             List <string> xBadChunks = new List <string> ();
@@ -139,7 +139,7 @@ namespace timeLog
         public static void DeleteLogFromFile (string filePath, LogInfo log)
         {
             if (Path.IsPathFullyQualified (filePath) == false)
-                throw new InvalidOperationException ();
+                throw new ArgumentException ();
 
             string xChunk = log.ToChunk ();
 
@@ -173,7 +173,7 @@ namespace timeLog
         public static string MapPath (string relativePath)
         {
             if (Path.IsPathFullyQualified (relativePath))
-                throw new InvalidOperationException ();
+                throw new ArgumentException ();
 
             return Path.Join (AppDirectoryPath, relativePath);
         }

@@ -11,9 +11,9 @@ namespace timeLog
 {
     // このプログラム専用のクラス
     // API 的に他から使われる可能性が低いので Shared に入らない
-    // XAML でバインディングするので public に
+    // 初期の手抜きにより設計が良くないが、そのことは taskKiller のログに
 
-    public class iPreviousLogs
+    internal static class iPreviousLogs
     {
         public readonly static LogFile LogFile = new LogFile (Shared.MapPath ("timeLogs.txt"));
 
