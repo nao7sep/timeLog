@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
 
 namespace timeLog
 {
@@ -49,5 +51,30 @@ namespace timeLog
         public static bool IsWindowClosed;
 
         public static readonly KvsFile Session = new KvsFile (Shared.MapPath ("timeLog.Session.txt"));
+
+        // 低い可能性だが、他のコントロールでも使うかもしれないので iShared に
+
+        public static Size GetFormattedTextSize (string value, Typeface typeface, double fontSize, double pixelsPerDip)
+        {
+            FormattedText xText = new FormattedText (value, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, fontSize, Brushes.Black, pixelsPerDip);
+            return new Size (xText.Width, xText.Height);
+        }
+
+        public static double GetProperFontSize (double maxWidth, double maxHeight, string value, Typeface typeface, double pixelsPerDip)
+        {
+            double xFontSize = 1;
+
+            while (true)
+            {
+                Size xSize = GetFormattedTextSize (value, typeface, xFontSize, pixelsPerDip);
+
+                if (xSize.Width < maxWidth && xSize.Height < maxHeight)
+                    xFontSize ++;
+
+                else break;
+            }
+
+            return xFontSize;
+        }
     }
 }

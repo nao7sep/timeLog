@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Configuration;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -26,6 +27,31 @@ namespace timeLog
         public MainWindow ()
         {
             InitializeComponent ();
+        }
+
+        private void mWindow_Initialized (object sender, EventArgs e)
+        {
+            try
+            {
+                if (double.TryParse (ConfigurationManager.AppSettings ["InitialWidth"], out double xResult))
+                    mWindow.Width = xResult;
+
+                if (double.TryParse (ConfigurationManager.AppSettings ["InitialHeight"], out double xResultAlt))
+                    mWindow.Height = xResultAlt;
+
+                string? xFontFamily = ConfigurationManager.AppSettings ["FontFamily"];
+
+                if (string.IsNullOrEmpty (xFontFamily) == false)
+                    mWindow.FontFamily = new FontFamily (xFontFamily);
+
+                // 不要
+                // iUpdateControls ();
+            }
+
+            catch (Exception xException)
+            {
+                iShared.HandleException (this, xException);
+            }
         }
 
         private void iUpdateControls ()
@@ -266,6 +292,29 @@ namespace timeLog
                 iAddLog (DateTime.UtcNow);
 
                 iUpdateControls ();
+            }
+
+            catch (Exception xException)
+            {
+                iShared.HandleException (this, xException);
+            }
+        }
+
+        private void mElapsedTime_SizeChanged (object sender, SizeChangedEventArgs e)
+        {
+            try
+            {
+                if (mElapsedTime.Visibility == Visibility.Visible)
+                {
+                    Typeface xTypeface = new Typeface (FontFamily, FontStyle, FontWeight, FontStretch);
+                    double xPixelsPerDip = VisualTreeHelper.GetDpi (this).PixelsPerDip;
+
+                    mElapsedTime.FontSize = iShared.GetProperFontSize (mElapsedTime.ActualWidth, mElapsedTime.ActualHeight, "999時間59分", xTypeface, xPixelsPerDip);
+
+                    // 不要だが一応
+                    // いずれ必要になるかもしれない
+                    iUpdateControls ();
+                }
             }
 
             catch (Exception xException)
