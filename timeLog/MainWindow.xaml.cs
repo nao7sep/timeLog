@@ -39,6 +39,12 @@ namespace timeLog
                 if (double.TryParse (ConfigurationManager.AppSettings ["InitialHeight"], out double xResultAlt))
                     mWindow.Height = xResultAlt;
 
+                if (bool.TryParse (ConfigurationManager.AppSettings ["IsMaximized"], out bool xResultAlt1))
+                {
+                    if (xResultAlt1)
+                        mWindow.WindowState = WindowState.Maximized;
+                }
+
                 string? xFontFamily = ConfigurationManager.AppSettings ["FontFamily"];
 
                 if (string.IsNullOrEmpty (xFontFamily) == false)
@@ -99,6 +105,13 @@ namespace timeLog
                 mDeleteSelectedLog.IsEnabled = true;
 
             else mDeleteSelectedLog.IsEnabled = false;
+        }
+
+        private void iUpdateStatistics ()
+        {
+            var xStatistics = Shared.GetStatistics (iPreviousLogs.LogFile);
+            Shared.SaveStatistics (xStatistics.Item2);
+            mStatistics.Text = xStatistics.Item1;
         }
 
         private void iStartUpdatingElapsedTime ()
@@ -191,6 +204,7 @@ namespace timeLog
                 mPreviousTasks.ItemsSource = iPreviousLogs.Logs;
 
                 iUpdateControls ();
+                iUpdateStatistics ();
 
                 mNextTasks.Focus ();
 
@@ -260,7 +274,10 @@ namespace timeLog
                 DateTime xUtcNow = DateTime.UtcNow;
 
                 if (iShared.CurrentTasksStartUtc != null)
+                {
                     iAddLog (xUtcNow);
+                    iUpdateStatistics ();
+                }
 
                 iShared.CurrentTasksStartUtc = xUtcNow;
                 mCurrentTasks.Text = string.Join (Environment.NewLine, Shared.ParseTasksString (mNextTasks.Text));
@@ -334,6 +351,7 @@ namespace timeLog
             try
             {
                 iAddLog (DateTime.UtcNow);
+                iUpdateStatistics ();
 
                 iUpdateControls ();
             }
@@ -380,7 +398,7 @@ namespace timeLog
             }
         }
 
-        private void iDeleteLog ()
+        private bool iDeleteLog ()
         {
             if (MessageBox.Show (this, "選択中のログを削除しますか？", string.Empty, MessageBoxButton.YesNo, MessageBoxImage.None, MessageBoxResult.No) == MessageBoxResult.Yes)
             {
@@ -413,7 +431,11 @@ namespace timeLog
 
                     else iSelectItem (xSelectedIndex - 1);
                 }
+
+                return true;
             }
+
+            else return false;
         }
 
         private void mPreviousTasks_KeyDown (object sender, KeyEventArgs e)
@@ -423,7 +445,9 @@ namespace timeLog
                 if (e.Key == Key.Delete)
                 {
                     e.Handled = true;
-                    iDeleteLog ();
+
+                    if (iDeleteLog ())
+                        iUpdateStatistics ();
                 }
             }
 

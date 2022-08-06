@@ -45,23 +45,24 @@ namespace timeLog
         }
 
         // プロパティーでないと Binding できないようだ
+
         public bool IsValuable { get; private set; }
 
         public string IsValuableFriendlyString
         {
             get
             {
-                return IsValuable ? "価値あり" : string.Empty;
+                return Shared.IsValuableToFriendlyString (IsValuable);
             }
         }
 
-        public readonly bool IsDisoriented;
+        public bool IsDisoriented { get; private set; }
 
         public string IsDisorientedFriendlyString
         {
             get
             {
-                return IsDisoriented ? "グダグダ" : string.Empty;
+                return Shared.IsDisorientedToFriendlyString (IsDisoriented);
             }
         }
 

@@ -190,9 +190,9 @@ namespace timeLog
             return value.ToLocalTime ().ToString (DateTimeFriendlyFormatString, CultureInfo.InvariantCulture);
         }
 
-        public static string TimeSpanToString (TimeSpan value)
+        public static string SecondsToString (double value)
         {
-            long xSeconds = (long) value.TotalSeconds;
+            long xSeconds = (long) value;
 
             // 最初は「時」と「分」だけだったが、2～3分、早ければ1分未満で終わるタスクもある
             // そのとき、59秒が「0分」となったり、1分59分が「1分」となったりするのでは誤差が大きい
@@ -207,6 +207,11 @@ namespace timeLog
                 return FormattableString.Invariant ($"{xSeconds / 60}分{xSeconds % 60}秒");
 
             else return FormattableString.Invariant ($"{xSeconds}秒");
+        }
+
+        public static string TimeSpanToString (TimeSpan value)
+        {
+            return SecondsToString (value.TotalSeconds);
         }
 
         public static string IndentLines (string value, int depth)
@@ -230,6 +235,92 @@ namespace timeLog
 
                 else return x;
             }));
+        }
+
+        public static string IsValuableToFriendlyString (bool value)
+        {
+            return value ? "価値あり" : "価値なし";
+        }
+
+        public static string IsDisorientedToFriendlyString (bool value)
+        {
+            return value ? "グダグダ" : "集中";
+        }
+
+        public readonly static string DateFriendlyFormatString = "yyyy'/'M'/'d";
+
+        public static string DateToFriendlyString (DateTime value)
+        {
+            return value.ToString (DateFriendlyFormatString, CultureInfo.InvariantCulture);
+        }
+
+        public static (string, string) GetStatistics (LogFile file)
+        {
+            var xData1 = file.Logs.Select (x => (x.Key.ToLocalTime ().AddHours (-4).Date, x.Value));
+
+            var xData2 = xData1.DistinctBy (x => x.Date).Select (x =>
+            {
+                var xData3 = xData1.Where (y => y.Date == x.Date).Select (y => y.Value);
+
+                double
+                    xValuableAndNotDisorientedSeconds = xData3.Where (y => y.IsValuable && y.IsDisoriented == false).Sum (y => y.ElapsedTime.TotalSeconds),
+                    xValuableAndDisorientedSeconds = xData3.Where (y => y.IsValuable && y.IsDisoriented).Sum (y => y.ElapsedTime.TotalSeconds),
+                    xValuableSeconds = xValuableAndNotDisorientedSeconds + xValuableAndDisorientedSeconds,
+                    xNotValuableAndNotDisorientedSeconds = xData3.Where (y => y.IsValuable == false && y.IsDisoriented == false).Sum (y => y.ElapsedTime.TotalSeconds),
+                    xNotValuableAndDisorientedSeconds = xData3.Where (y => y.IsValuable == false && y.IsDisoriented).Sum (y => y.ElapsedTime.TotalSeconds),
+                    xNotValuableSeconds = xNotValuableAndNotDisorientedSeconds + xNotValuableAndDisorientedSeconds,
+                    xTotalSeconds = xValuableSeconds + xNotValuableSeconds,
+                    xNotDisorientedSeconds = xValuableAndNotDisorientedSeconds + xNotValuableAndNotDisorientedSeconds,
+                    xDisorientedSeconds = xValuableAndDisorientedSeconds + xNotValuableAndDisorientedSeconds;
+
+                int xValuableSecondsPercentage = (int) Math.Round (xValuableSeconds * 100 / xTotalSeconds),
+                    xValuableAndNotDisorientedSecondsPercentage = (int) Math.Round (xValuableAndNotDisorientedSeconds * 100 / xTotalSeconds),
+                    xValuableAndDisorientedSecondsPercentage = xValuableSecondsPercentage - xValuableAndNotDisorientedSecondsPercentage,
+                    xNotValuableSecondsPercentage = 100 - xValuableSecondsPercentage,
+                    xNotValuableAndNotDisorientedSecondsPercentage = (int) Math.Round (xNotValuableAndNotDisorientedSeconds * 100 / xTotalSeconds),
+                    xNotValuableAndDisorientedSecondsPercentage = xNotValuableSecondsPercentage - xNotValuableAndNotDisorientedSecondsPercentage,
+                    xNotDisorientedSecondsPercentage = (int) Math.Round (xNotDisorientedSeconds * 100 / xTotalSeconds),
+                    xDisorientedSecondsPercentage = 100 - xNotDisorientedSecondsPercentage;
+
+                string xFriendlyString = FormattableString.Invariant (
+$@"{IsValuableToFriendlyString (true)}: {SecondsToString (xValuableSeconds)}（{xValuableSecondsPercentage}％）
+    {IsDisorientedToFriendlyString (false)}: {SecondsToString (xValuableAndNotDisorientedSeconds)}（{xValuableAndNotDisorientedSecondsPercentage}％）
+    {IsDisorientedToFriendlyString (true)}: {SecondsToString (xValuableAndDisorientedSeconds)}（{xValuableAndDisorientedSecondsPercentage}％）
+{IsValuableToFriendlyString (false)}: {SecondsToString (xNotValuableSeconds)}（{xNotValuableSecondsPercentage}％）
+    {IsDisorientedToFriendlyString (false)}: {SecondsToString (xNotValuableAndNotDisorientedSeconds)}（{xNotValuableAndNotDisorientedSecondsPercentage}％）
+    {IsDisorientedToFriendlyString (true)}: {SecondsToString (xNotValuableAndDisorientedSeconds)}（{xNotValuableAndDisorientedSecondsPercentage}％）
+--------------------
+{IsDisorientedToFriendlyString (false)}: {SecondsToString (xNotDisorientedSeconds)}（{xNotDisorientedSecondsPercentage}％）
+{IsDisorientedToFriendlyString (true)}: {SecondsToString (xDisorientedSeconds)}（{xDisorientedSecondsPercentage}％）");
+
+                return (x.Date, FriendlyString: xFriendlyString);
+            }).
+            OrderByDescending (x => x);
+
+            string iBuild (bool isShortVersion)
+            {
+                var xData4 = (isShortVersion ? xData2!.Take (7) : xData2).Select (x =>
+                {
+                    return $"{DateToFriendlyString (x.Date)}:{Environment.NewLine}{IndentLines (x.FriendlyString, 1)}";
+                });
+
+                string xString = string.Join (Environment.NewLine + Environment.NewLine, xData4);
+
+                if (xString.Length > 0)
+                    return xString + Environment.NewLine;
+
+                else return xString;
+            }
+
+            return (iBuild (true), iBuild (false));
+        }
+
+        public static void SaveStatistics (string value)
+        {
+            string xFilePath = MapPath ("timeLog.Statistics.txt");
+
+            if (File.Exists (xFilePath) == false || File.ReadAllText (xFilePath, Encoding.UTF8) != value)
+                File.WriteAllText (xFilePath, value, Encoding.UTF8);
         }
     }
 }
