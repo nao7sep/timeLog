@@ -44,6 +44,17 @@ namespace timeLog
             }
         }
 
+        // プロパティーでないと Binding できないようだ
+        public bool IsValuable { get; private set; }
+
+        public string IsValuableFriendlyString
+        {
+            get
+            {
+                return IsValuable ? "価値あり" : string.Empty;
+            }
+        }
+
         public readonly bool IsDisoriented;
 
         public string IsDisorientedFriendlyString
@@ -97,10 +108,11 @@ namespace timeLog
             }
         }
 
-        public LogInfo (DateTime startUtc, List <string> tasks, bool isDisoriented, DateTime endUtc)
+        public LogInfo (DateTime startUtc, List <string> tasks, bool isValuable, bool isDisoriented, DateTime endUtc)
         {
             StartUtc = startUtc;
             Tasks = tasks;
+            IsValuable = isValuable;
             IsDisoriented = isDisoriented;
             EndUtc = endUtc;
         }
@@ -114,6 +126,7 @@ namespace timeLog
 
             StringBuilder xBuilder = new StringBuilder ();
             xBuilder.AppendLine ("StartUtc:" + StartUtc.ToString ("O"));
+            xBuilder.AppendLine ("IsValuable:" + IsValuable.ToString ());
             xBuilder.AppendLine ("IsDisoriented:" + IsDisoriented.ToString ());
             xBuilder.AppendLine ("EndUtc:" + EndUtc.ToString ("O"));
             xBuilder.AppendLine (string.Join (Environment.NewLine, Tasks.Select (x => "//\x20" + x)));
@@ -137,6 +150,15 @@ namespace timeLog
                     throw new FormatException ();
 
                 DateTime xStartUtc = DateTime.ParseExact (xLine.Substring ("StartUtc:".Length), "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+
+                // -----------------------------------------------------------------------------
+
+                xLine = xReader.ReadLine ();
+
+                if (xLine!.StartsWith ("IsValuable:", StringComparison.OrdinalIgnoreCase) == false)
+                    throw new FormatException ();
+
+                bool xIsValuable = bool.Parse (xLine.Substring ("IsValuable:".Length));
 
                 // -----------------------------------------------------------------------------
 
@@ -171,7 +193,7 @@ namespace timeLog
                 if (xTasks.Count == 0)
                     throw new FormatException ();
 
-                return new LogInfo (xStartUtc, xTasks, xIsDisoriented, xEndUtc);
+                return new LogInfo (xStartUtc, xTasks, xIsValuable, xIsDisoriented, xEndUtc);
             }
         }
     }

@@ -67,6 +67,7 @@ namespace timeLog
                 else mStartNextTasks.IsEnabled = false;
 
                 mCurrentTasks.IsEnabled = true;
+                mAreCurrentTasksValuable.IsEnabled = true;
                 mIsDisoriented.IsEnabled = true;
 
                 if (xAreCurrentTasksOK)
@@ -86,6 +87,7 @@ namespace timeLog
                 else mStartNextTasks.IsEnabled = false;
 
                 mCurrentTasks.IsEnabled = false;
+                mAreCurrentTasksValuable.IsEnabled = false;
                 mIsDisoriented.IsEnabled = false;
                 mEndCurrentTasks.IsEnabled = false;
 
@@ -163,11 +165,17 @@ namespace timeLog
 
                 mNextTasks.Text = iShared.Session.GetStringOrDefault ("NextTasks", string.Empty);
 
+                if (bool.TryParse (iShared.Session.GetStringOrDefault ("AreNextTasksValuable", string.Empty), out bool xResultAlt1))
+                    mAreNextTasksValuable.IsChecked = xResultAlt1;
+
                 if (DateTime.TryParseExact (iShared.Session.GetStringOrDefault ("CurrentTasksStartUtc", string.Empty), "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime xResult))
                 {
                     iShared.CurrentTasksStartUtc = xResult;
 
                     mCurrentTasks.Text = iShared.Session.GetStringOrDefault ("CurrentTasks", string.Empty);
+
+                    if (bool.TryParse (iShared.Session.GetStringOrDefault ("AreCurrentTasksValuable", string.Empty), out bool xResultAlt2))
+                        mAreCurrentTasksValuable.IsChecked = xResultAlt2;
 
                     if (bool.TryParse (iShared.Session.GetStringOrDefault ("IsDisoriented", string.Empty), out bool xResultAlt))
                         mIsDisoriented.IsChecked = xResultAlt;
@@ -217,11 +225,28 @@ namespace timeLog
             }
         }
 
+        private void mAreNextTasksValuable_IsCheckedChanged (object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                iUpdateControls ();
+
+                iShared.Session.SetString ("AreNextTasksValuable", mAreNextTasksValuable.IsChecked!.Value.ToString ());
+                iShared.Session.Save ();
+            }
+
+            catch (Exception xException)
+            {
+                iShared.HandleException (this, xException);
+            }
+        }
+
         private void iAddLog (DateTime utcNow)
         {
-            iPreviousLogs.AddLog (new LogInfo (iShared.CurrentTasksStartUtc!.Value, Shared.ParseTasksString (mCurrentTasks.Text), mIsDisoriented.IsChecked!.Value, utcNow));
+            iPreviousLogs.AddLog (new LogInfo (iShared.CurrentTasksStartUtc!.Value, Shared.ParseTasksString (mCurrentTasks.Text), mAreCurrentTasksValuable.IsChecked!.Value, mIsDisoriented.IsChecked!.Value, utcNow));
             iShared.CurrentTasksStartUtc = null;
             mCurrentTasks.Clear ();
+            mAreCurrentTasksValuable.IsChecked = false;
             mIsDisoriented.IsChecked = false;
 
             mPreviousTasks.ScrollIntoView (mPreviousTasks.Items [0]);
@@ -239,8 +264,11 @@ namespace timeLog
 
                 iShared.CurrentTasksStartUtc = xUtcNow;
                 mCurrentTasks.Text = string.Join (Environment.NewLine, Shared.ParseTasksString (mNextTasks.Text));
+                mAreCurrentTasksValuable.IsChecked = mAreNextTasksValuable.IsChecked;
                 mIsDisoriented.IsChecked = false;
+
                 mNextTasks.Clear ();
+                mAreNextTasksValuable.IsChecked = false;
 
                 iUpdateControls ();
 
@@ -260,6 +288,22 @@ namespace timeLog
                 iUpdateControls ();
 
                 iShared.Session.SetString ("CurrentTasks", mCurrentTasks.Text);
+                iShared.Session.Save ();
+            }
+
+            catch (Exception xException)
+            {
+                iShared.HandleException (this, xException);
+            }
+        }
+
+        private void mAreCurrentTasksValuable_IsCheckedChanged (object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                iUpdateControls ();
+
+                iShared.Session.SetString ("AreCurrentTasksValuable", mAreCurrentTasksValuable.IsChecked!.Value.ToString ());
                 iShared.Session.Save ();
             }
 
