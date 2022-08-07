@@ -230,10 +230,12 @@ namespace timeLog
 
             return string.Join (Environment.NewLine, xLines.Select (x =>
             {
-                if (x.Length > 0)
+                // 空白系文字の扱いに関する仕様変更を反映
+
+                if (string.IsNullOrWhiteSpace (x) == false)
                     return xIndents + x;
 
-                else return x;
+                else return string.Empty;
             }));
         }
 
