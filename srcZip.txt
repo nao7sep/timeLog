@@ -1,0 +1,13 @@
+﻿[Delete]
+Compiled
+
+[Copy]
+timeLog\bin\Release\net6.0-windows > Compiled
+
+[Exclude]
+.git
+.vs
+Archived
+timeLog/bin
+timeLog/obj
+.gitignore
