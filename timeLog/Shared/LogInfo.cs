@@ -142,9 +142,6 @@ namespace timeLog
                 // 何もしなくても勝手に落ちるところはノーチェックで処理し、
                 //     自分で投げないといけないところではそうしている
 
-                // ジェネリックのローカル関数を作りコードの共通化を試みたが、DateTime や bool を T に変換できないというエラーが出た
-                // キャストなどで解決しなかったので、何らかの制限またはバグがあるか、寝不足の自分が何か変なことをしていたか
-
                 string? xLine = xReader.ReadLine ();
 
                 if (xLine!.StartsWith ("StartUtc:", StringComparison.OrdinalIgnoreCase) == false)
