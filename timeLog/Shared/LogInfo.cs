@@ -68,33 +68,7 @@ namespace timeLog
 
         // 今のところ困っていないので readonly 変数のまま
 
-        public readonly DateTime EndUtc;
-
-        private string? mEndUtcFriendlyString = null;
-
-        public string EndUtcFriendlyString
-        {
-            get
-            {
-                if (mEndUtcFriendlyString == null)
-                    mEndUtcFriendlyString = Shared.UtcToLocalTimeFriendlyString (EndUtc);
-
-                return mEndUtcFriendlyString;
-            }
-        }
-
-        private TimeSpan? mElapsedTime = null;
-
-        public TimeSpan ElapsedTime
-        {
-            get
-            {
-                if (mElapsedTime == null)
-                    mElapsedTime = EndUtc - StartUtc;
-
-                return mElapsedTime.Value;
-            }
-        }
+        public readonly TimeSpan ElapsedTime;
 
         private string? mElapsedTimeString = null;
 
@@ -109,13 +83,13 @@ namespace timeLog
             }
         }
 
-        public LogInfo (DateTime startUtc, List <string> tasks, bool isValuable, bool isDisoriented, DateTime endUtc)
+        public LogInfo (DateTime startUtc, List <string> tasks, bool isValuable, bool isDisoriented, TimeSpan elapsedTime)
         {
             StartUtc = startUtc;
             Tasks = tasks;
             IsValuable = isValuable;
             IsDisoriented = isDisoriented;
-            EndUtc = endUtc;
+            ElapsedTime = elapsedTime;
         }
 
         public string ToChunk ()
@@ -129,7 +103,7 @@ namespace timeLog
             xBuilder.AppendLine ("StartUtc:" + StartUtc.ToString ("O"));
             xBuilder.AppendLine ("IsValuable:" + IsValuable.ToString ());
             xBuilder.AppendLine ("IsDisoriented:" + IsDisoriented.ToString ());
-            xBuilder.AppendLine ("EndUtc:" + EndUtc.ToString ("O"));
+            xBuilder.AppendLine ("ElapsedTime:" + ElapsedTime.ToString ("c"));
             xBuilder.AppendLine (string.Join (Environment.NewLine, Tasks.Select (x => "//\x20" + x)));
             return xBuilder.ToString ();
         }
@@ -171,10 +145,10 @@ namespace timeLog
 
                 xLine = xReader.ReadLine ();
 
-                if (xLine!.StartsWith ("EndUtc:", StringComparison.OrdinalIgnoreCase) == false)
+                if (xLine!.StartsWith ("ElapsedTime:", StringComparison.OrdinalIgnoreCase) == false)
                     throw new FormatException ();
 
-                DateTime xEndUtc = DateTime.ParseExact (xLine.Substring ("EndUtc:".Length), "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+                TimeSpan xElapsedTime = TimeSpan.ParseExact (xLine.Substring ("ElapsedTime:".Length), "c", CultureInfo.InvariantCulture);
 
                 // -----------------------------------------------------------------------------
 
@@ -191,7 +165,7 @@ namespace timeLog
                 if (xTasks.Count == 0)
                     throw new FormatException ();
 
-                return new LogInfo (xStartUtc, xTasks, xIsValuable, xIsDisoriented, xEndUtc);
+                return new LogInfo (xStartUtc, xTasks, xIsValuable, xIsDisoriented, xElapsedTime);
             }
         }
     }
