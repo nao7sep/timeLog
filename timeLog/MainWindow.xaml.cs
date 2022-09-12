@@ -16,6 +16,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Nekote;
 using SharpHook;
 
 namespace timeLog
@@ -30,14 +31,9 @@ namespace timeLog
             InitializeComponent ();
         }
 
-        // CurrentTasksStartUtc は iShared に入っているが、
-        //     ウィンドウと関連するメンバー変数はここに
-
-        private Counter? mCounter = null;
-
         private TaskPoolGlobalHook? mGlobalHook = null;
 
-        // mGlobalHook の Dispose により終了となる
+        // mGlobalHook の Dispose により終了する
         private Task? mHookingTask = null;
 
         private void mWindow_Initialized (object sender, EventArgs e)
@@ -81,22 +77,28 @@ namespace timeLog
             bool xAreNextTasksOK = string.IsNullOrEmpty (mNextTasks.Text) == false && Shared.ParseTasksString (mNextTasks.Text).Count > 0,
                 xAreCurrentTasksOK = string.IsNullOrEmpty (mCurrentTasks.Text) == false && Shared.ParseTasksString (mCurrentTasks.Text).Count > 0;
 
-            if (iShared.CurrentTasksStartUtc != null)
+            if (iCounter.IsRunning)
             {
+                // 実行中のタスクを「終了」にして押し出すため、
+                //     そちらもデータが揃っているのを確認
+
                 if (xAreNextTasksOK && xAreCurrentTasksOK)
                     mStartNextTasks.IsEnabled = true;
 
                 else mStartNextTasks.IsEnabled = false;
 
                 mCurrentTasks.IsEnabled = true;
-                mAreCurrentTasksValuable.IsEnabled = true;
-                mIsDisoriented.IsEnabled = true;
+                mAutoPauses.IsEnabled = true;
+
                 mPauseOrResumeCounting.IsEnabled = true;
 
-                if (mCounter!.IsRunning)
+                if (iCounter.IsPausedManually == false)
                     mPauseOrResumeCounting.Content = "中断";
 
                 else mPauseOrResumeCounting.Content = "再開";
+
+                mAreCurrentTasksValuable.IsEnabled = true;
+                mIsDisoriented.IsEnabled = true;
 
                 if (xAreCurrentTasksOK)
                     mEndCurrentTasks.IsEnabled = true;
@@ -115,10 +117,11 @@ namespace timeLog
                 else mStartNextTasks.IsEnabled = false;
 
                 mCurrentTasks.IsEnabled = false;
-                mAreCurrentTasksValuable.IsEnabled = false;
-                mIsDisoriented.IsEnabled = false;
+                mAutoPauses.IsEnabled = false;
                 mPauseOrResumeCounting.IsEnabled = false;
                 mPauseOrResumeCounting.Content = "中断";
+                mAreCurrentTasksValuable.IsEnabled = false;
+                mIsDisoriented.IsEnabled = false;
                 mEndCurrentTasks.IsEnabled = false;
 
                 mElapsedTimeLabel.Visibility = Visibility.Collapsed;
@@ -140,17 +143,21 @@ namespace timeLog
 
         private void iStartUpdatingElapsedTime ()
         {
-            Task.Factory.StartNew (() =>
+            Task.Run (() =>
             {
                 // 前回 mWindow.Title などを更新したときの経過秒数
+                // 同じ値を何度も設定することを回避
                 double xPreviousElapsedSeconds = -1;
 
                 while (true)
                 {
-                    if (iShared.CurrentTasksStartUtc == null)
+                    // 自動中断や「中断」ボタンによる中断でもループを抜けようとしたが、
+                    //     100ミリ秒に一度のごく少量の計算なので Task を回しておくのがシンプル
+
+                    if (iCounter.IsRunning == false)
                         break;
 
-                    TimeSpan xElapsedTime = mCounter!.ElapsedTime;
+                    TimeSpan xElapsedTime = iCounter.Stopwatch.TotalElapsedTime;
 
                     // (double) _ticks / TicksPerSecond という割り算なので結果をキャッシュ
                     // https://source.dot.net/#System.Private.CoreLib/TimeSpan.cs
@@ -198,33 +205,48 @@ namespace timeLog
 
                 mNextTasks.Text = iShared.Session.GetStringOrDefault ("NextTasks", string.Empty);
 
-                if (bool.TryParse (iShared.Session.GetStringOrDefault ("AreNextTasksValuable", string.Empty), out bool xResultAlt1))
-                    mAreNextTasksValuable.IsChecked = xResultAlt1;
+                if (bool.TryParse (iShared.Session.GetStringOrDefault ("AreNextTasksValuable", string.Empty), out bool xResult))
+                    mAreNextTasksValuable.IsChecked = xResult;
 
-                if (DateTime.TryParseExact (iShared.Session.GetStringOrDefault ("CurrentTasksStartUtc", string.Empty), "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime xResult))
+                // 自動中断機能はデフォルトでオン
+                // セッション情報でオフの場合のみオフに
+
+                // iCounter.AutoPauses = true;
+                mAutoPauses.IsChecked = true;
+
+                // 「中断」ボタンにより中断されていないのが初期状態
+                iCounter.IsPausedManually = false;
+
+                iCounter.LoadPreviousInfo ();
+
+                // 起動時に前回の情報が残っていれば、カウント中あるいは中断中（自動、マニュアルの両方）にプログラムが終了したということ
+                // カウント中で、各部のデータが戻り、マニュアルで中断されていて、「再開」ボタンから再スタートできる状態に
+
+                if (iCounter.PreviousStartUtc != null)
                 {
-                    iShared.CurrentTasksStartUtc = xResult;
+                    iCounter.IsRunning = true;
 
                     mCurrentTasks.Text = iShared.Session.GetStringOrDefault ("CurrentTasks", string.Empty);
 
-                    if (bool.TryParse (iShared.Session.GetStringOrDefault ("AreCurrentTasksValuable", string.Empty), out bool xResultAlt2))
-                        mAreCurrentTasksValuable.IsChecked = xResultAlt2;
+                    if (bool.TryParse (iShared.Session.GetStringOrDefault ("AutoPauses", string.Empty), out bool xResultAlt))
+                    {
+                        // iCounter.AutoPauses = xResultAlt;
+                        mAutoPauses.IsChecked = xResultAlt;
+                    }
 
-                    if (bool.TryParse (iShared.Session.GetStringOrDefault ("IsDisoriented", string.Empty), out bool xResultAlt))
-                        mIsDisoriented.IsChecked = xResultAlt;
+                    iCounter.IsPausedManually = true;
 
-                    // セッションデータに破損がないなら必ず読めるべきだが、そういう実装にすると起動しなくなる可能性がある
+                    iCounter.Stopwatch.PreviousEntries.Add (new nStopwatchEntry <nEmptyClass, nEmptyStruct>
+                    {
+                        StartUtc = iCounter.PreviousStartUtc.Value,
+                        EndUtc = iCounter.PreviousStartUtc.Value + iCounter.PreviousElapsedTime
+                    });
 
-                    bool? xIsRunning = null;
-                    TimeSpan? xElapsedTime = null;
+                    if (bool.TryParse (iShared.Session.GetStringOrDefault ("AreCurrentTasksValuable", string.Empty), out bool xResultAlt1))
+                        mAreCurrentTasksValuable.IsChecked = xResultAlt1;
 
-                    if (bool.TryParse (iShared.Session.GetStringOrDefault ("IsCounterRunning", string.Empty), out bool xResultAlt3))
-                        xIsRunning = xResultAlt3;
-
-                    if (TimeSpan.TryParseExact (iShared.Session.GetStringOrDefault ("CounterElapsedTime", string.Empty), "c", CultureInfo.InvariantCulture, out TimeSpan xResultAlt4))
-                        xElapsedTime = xResultAlt4;
-
-                    mCounter = new Counter (xIsRunning ?? true, xElapsedTime ?? TimeSpan.Zero);
+                    if (bool.TryParse (iShared.Session.GetStringOrDefault ("IsDisoriented", string.Empty), out bool xResultAlt2))
+                        mIsDisoriented.IsChecked = xResultAlt2;
                 }
 
                 // 「～の一部に」とか「読み込みにおいてエラーが～」とかも考えたが、
@@ -243,10 +265,9 @@ namespace timeLog
 
                 InputMethod.Current.ImeState = InputMethodState.On;
 
-                // 経過時間の表示が必要かスマートに判定できるので手抜き
                 // 別スレッドを作るので、UI 系の処理が終わってから
 
-                if (mEndCurrentTasks.IsEnabled)
+                if (iCounter.IsRunning)
                     iStartUpdatingElapsedTime ();
             }
 
@@ -260,10 +281,10 @@ namespace timeLog
         {
             try
             {
-                iUpdateControls ();
-
                 iShared.Session.SetString ("NextTasks", mNextTasks.Text);
                 iShared.Session.Save ();
+
+                iUpdateControls ();
             }
 
             catch (Exception xException)
@@ -276,10 +297,10 @@ namespace timeLog
         {
             try
             {
-                iUpdateControls ();
-
                 iShared.Session.SetString ("AreNextTasksValuable", mAreNextTasksValuable.IsChecked!.Value.ToString ());
                 iShared.Session.Save ();
+
+                iUpdateControls ();
             }
 
             catch (Exception xException)
@@ -290,10 +311,20 @@ namespace timeLog
 
         private void iAddLog ()
         {
-            iPreviousLogs.AddLog (new LogInfo (iShared.CurrentTasksStartUtc!.Value, Shared.ParseTasksString (mCurrentTasks.Text), mAreCurrentTasksValuable.IsChecked!.Value, mIsDisoriented.IsChecked!.Value, mCounter!.ElapsedTime));
-            iShared.CurrentTasksStartUtc = null;
-            mCounter = null;
+            iPreviousLogs.AddLog (new LogInfo (iCounter.PreviousStartUtc ?? iCounter.Stopwatch.CurrentEntryStartUtc!.Value,
+                Shared.ParseTasksString (mCurrentTasks.Text), mAreCurrentTasksValuable.IsChecked!.Value, mIsDisoriented.IsChecked!.Value,
+                iCounter.Stopwatch.TotalElapsedTime));
+
+            iCounter.PreviousStartUtc = null;
+            // iCounter.PreviousElapsedTime = TimeSpan.Zero;
+
+            iCounter.IsRunning = false;
+            // iCounter.AutoPauses = true;
+            iCounter.IsPausedManually = false;
+            iCounter.Stopwatch.Reset ();
+
             mCurrentTasks.Clear ();
+            mAutoPauses.IsChecked = true;
             mAreCurrentTasksValuable.IsChecked = false;
             mIsDisoriented.IsChecked = false;
 
@@ -304,16 +335,17 @@ namespace timeLog
         {
             try
             {
-                if (iShared.CurrentTasksStartUtc != null)
+                if (iCounter.IsRunning)
                 {
                     iAddLog ();
                     iUpdateStatistics ();
                 }
 
-                iShared.CurrentTasksStartUtc = DateTime.UtcNow;
-                mCounter = new Counter ();
-                mCounter.Start ();
+                iCounter.IsRunning = true;
+                iCounter.Stopwatch.Start ();
+
                 mCurrentTasks.Text = string.Join (Environment.NewLine, Shared.ParseTasksString (mNextTasks.Text));
+                mAutoPauses.IsChecked = true;
                 mAreCurrentTasksValuable.IsChecked = mAreNextTasksValuable.IsChecked;
                 mIsDisoriented.IsChecked = false;
 
@@ -335,10 +367,10 @@ namespace timeLog
         {
             try
             {
-                iUpdateControls ();
-
                 iShared.Session.SetString ("CurrentTasks", mCurrentTasks.Text);
                 iShared.Session.Save ();
+
+                iUpdateControls ();
             }
 
             catch (Exception xException)
@@ -347,30 +379,16 @@ namespace timeLog
             }
         }
 
-        private void mAreCurrentTasksValuable_IsCheckedChanged (object sender, RoutedEventArgs e)
+        private void mAutoPauses_IsCheckedChanged (object sender, RoutedEventArgs e)
         {
             try
             {
-                iUpdateControls ();
+                iCounter.AutoPauses = mAutoPauses.IsChecked!.Value;
 
-                iShared.Session.SetString ("AreCurrentTasksValuable", mAreCurrentTasksValuable.IsChecked!.Value.ToString ());
+                iShared.Session.SetString ("AutoPauses", mAutoPauses.IsChecked!.Value.ToString ());
                 iShared.Session.Save ();
-            }
 
-            catch (Exception xException)
-            {
-                iShared.HandleException (this, xException);
-            }
-        }
-
-        private void mIsDisoriented_IsCheckedChanged (object sender, RoutedEventArgs e)
-        {
-            try
-            {
                 iUpdateControls ();
-
-                iShared.Session.SetString ("IsDisoriented", mIsDisoriented.IsChecked!.Value.ToString ());
-                iShared.Session.Save ();
             }
 
             catch (Exception xException)
@@ -383,6 +401,52 @@ namespace timeLog
         {
             try
             {
+                if (iCounter.IsPausedManually == false)
+                {
+                    iCounter.IsPausedManually = true;
+                    iCounter.Stopwatch.Pause ();
+                    mPauseOrResumeCounting.Content = "再開";
+                }
+
+                else
+                {
+                    iCounter.IsPausedManually = false;
+                    iCounter.Stopwatch.Resume ();
+                    mPauseOrResumeCounting.Content = "中断";
+                }
+
+                iUpdateControls ();
+            }
+
+            catch (Exception xException)
+            {
+                iShared.HandleException (this, xException);
+            }
+        }
+
+        private void mAreCurrentTasksValuable_IsCheckedChanged (object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                iShared.Session.SetString ("AreCurrentTasksValuable", mAreCurrentTasksValuable.IsChecked!.Value.ToString ());
+                iShared.Session.Save ();
+
+                iUpdateControls ();
+            }
+
+            catch (Exception xException)
+            {
+                iShared.HandleException (this, xException);
+            }
+        }
+
+        private void mIsDisoriented_IsCheckedChanged (object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                iShared.Session.SetString ("IsDisoriented", mIsDisoriented.IsChecked!.Value.ToString ());
+                iShared.Session.Save ();
+
                 iUpdateControls ();
             }
 
@@ -570,7 +634,9 @@ namespace timeLog
                 // コントロールの情報をここで集めるのは安全である可能性が高い
                 // https://docs.microsoft.com/en-us/dotnet/desktop/wpf/windows/
 
-                iShared.CurrentTasksStartUtc = null;
+                iCounter.ApplyPreviousInfo ();
+                iShared.Session.Save ();
+
                 iShared.IsWindowClosed = true;
             }
 

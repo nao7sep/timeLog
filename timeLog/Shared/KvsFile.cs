@@ -133,5 +133,11 @@ namespace timeLog
         {
             Pairs [key] = value;
         }
+
+        public void Delete (string key)
+        {
+            if (Pairs.ContainsKey (key))
+                Pairs.Remove (key);
+        }
     }
 }

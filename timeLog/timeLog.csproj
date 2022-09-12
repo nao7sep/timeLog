@@ -27,4 +27,10 @@
         <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Reference Include="Nekote">
+        <HintPath>..\..\..\Nekote\Nekote\bin\Release\net6.0\Nekote.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
 </Project>
