@@ -27,7 +27,7 @@
         <Label Grid.Row="1"  Content="今のタスク:" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Height="24" Padding="5,0" VerticalContentAlignment="Center" Target="{Binding ElementName=mCurrentTasks}"/>
         <TextBox Grid.Row="1" x:Name="mCurrentTasks" Margin="10,29,5,63" Padding="8" FontSize="15" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" TextChanged="mCurrentTasks_TextChanged" />
         <StackPanel Grid.Row="1" HorizontalAlignment="Right" Margin="0,0,5,34" VerticalAlignment="Bottom" Orientation="Horizontal">
-            <CheckBox x:Name="mAutoPauses" Content="自動中断" Padding="3,0,0,0" VerticalContentAlignment="Center" Checked="mAutoPauses_IsCheckedChanged" />
+            <CheckBox x:Name="mAutoPauses" Content="自動中断" Padding="3,0,0,0" VerticalContentAlignment="Center" Checked="mAutoPauses_IsCheckedChanged" Unchecked="mAutoPauses_IsCheckedChanged" />
             <Button x:Name="mPauseOrResumeCounting" Content="(mPauseOrResumeCounting)" Margin="10,0,0,0" Height="24" Padding="5,0" Click="mPauseOrResumeCounting_Click" />
         </StackPanel>
         <StackPanel Grid.Row="1" HorizontalAlignment="Right" Margin="0,0,5,5" VerticalAlignment="Bottom" Orientation="Horizontal">

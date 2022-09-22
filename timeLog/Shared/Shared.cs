@@ -256,7 +256,7 @@ namespace timeLog
             return value.ToString (DateFriendlyFormatString, CultureInfo.InvariantCulture);
         }
 
-        public static (string, string) GetStatistics (LogFile file)
+        public static (string ShortString, string LongString) GetStatistics (LogFile file)
         {
             var xData1 = file.Logs.Select (x => (x.Key.ToLocalTime ().AddHours (-4).Date, x.Value));
 

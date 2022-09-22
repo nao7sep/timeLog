@@ -13,7 +13,7 @@ namespace timeLog
     {
         public static void HandleException (Window? owner, Exception exception)
         {
-            iLogger.WriteSafely ("エラーが発生しました:" + Environment.NewLine + Shared.IndentLines (exception.ToString ().TrimEnd (), 1));
+            iLogger.Write_catch ("エラーが発生しました:" + Environment.NewLine + Shared.IndentLines (exception.ToString ().TrimEnd (), 1));
 
             const string xMessage = "エラーが発生しました。timeLog.Errors.txt を確認してください。";
 

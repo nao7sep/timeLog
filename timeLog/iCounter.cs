@@ -19,21 +19,18 @@ namespace timeLog
 
         public static DateTime? PreviousStartUtc;
 
-        // null チェックの回避のため、LoadPreviousInfo において値がなければ TimeSpan.Zero に
-        public static TimeSpan PreviousElapsedTime;
+        public static TimeSpan? PreviousElapsedTime;
 
         public static void LoadPreviousInfo ()
         {
+            // プログラムの起動時に一度だけ呼ばれるメソッド
+            // 以下の二つは、いずれも値がなければ null のまま
+
             if (DateTime.TryParseExact (iShared.Session.GetStringOrDefault ("PreviousStartUtc", string.Empty), "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime xResult))
                 PreviousStartUtc = xResult;
 
-            // 明示的に
-            else PreviousStartUtc = null;
-
             if (TimeSpan.TryParseExact (iShared.Session.GetStringOrDefault ("PreviousElapsedTime", string.Empty), "c", CultureInfo.InvariantCulture, out TimeSpan xResultAlt))
                 PreviousElapsedTime = xResultAlt;
-
-            else PreviousElapsedTime = TimeSpan.Zero;
         }
 
         // 保存までは行わないので Apply* に
@@ -43,7 +40,7 @@ namespace timeLog
             if (PreviousStartUtc != null)
             {
                 iShared.Session.SetString ("PreviousStartUtc", PreviousStartUtc.Value.ToString ("O"));
-                iShared.Session.SetString ("PreviousElapsedTime", PreviousElapsedTime.ToString ("c"));
+                iShared.Session.SetString ("PreviousElapsedTime", (PreviousElapsedTime ?? TimeSpan.Zero).ToString ("c"));
             }
 
             else
@@ -56,30 +53,20 @@ namespace timeLog
         // mStartNextTasks によりタスクが開始され、mEndCurrentTasks により終了されるまで true に
         // これは、nStopwatch による自動中断、mPauseOrResumeCounting、プログラムの終了などに影響されない
         // 起動時のみ、PreviousStartUtc に値があれば true になるという、引き継ぎのための特例がある
-        public static bool IsRunning;
+        // それはつまり、前回が計測中のプログラム終了なら、今回は計測中かつ中断中のものを「再開」できるところから始まるということ
 
-        // カウンターの表示を更新するループで繰り返し見られるのでコントロールの値をコピー
-        // バインディングでやるべきことだろうが、古い設計のプログラムなので既存のコードと同様に
+        // IsRunning では nStopwatch の IsRunning と紛らわしかったので名前を変更
 
-        public static bool AutoPauses
-        {
-            get
-            {
-                return Stopwatch.AutoPauses;
-            }
-
-            set
-            {
-                Stopwatch.AutoPauses = value;
-            }
-        }
+        public static bool AreTasksStarted;
 
         // 自動中断機能でなく、ボタンにより中断された場合に false に
-        // IsRunning == true なら「開始」が押されていて、IsPausedManually == false なら「中断」は押されていない
+        // AreTasksStarted == true なら「開始」が押されていて、IsPausedManually == false なら「中断」は押されていない
         // その状況でカウントが止まっているなら、自動中断中を疑い、Stopwatch.IsRunning == false をチェック
         public static bool IsPausedManually;
 
         // null チェックを省くため、単一のインスタンスを Reset で使い回す
+        // Task や、それを内部的に生成するものをいくつも作る実装は、とても分かりにくい
+
         public static readonly nStopwatch Stopwatch = new nStopwatch
         {
 #if DEBUG

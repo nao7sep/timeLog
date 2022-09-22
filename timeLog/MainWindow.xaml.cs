@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration;
@@ -34,6 +34,7 @@ namespace timeLog
         private TaskPoolGlobalHook? mGlobalHook = null;
 
         // mGlobalHook の Dispose により終了する
+        // 今のところ不要だが、一応
         private Task? mHookingTask = null;
 
         private void mWindow_Initialized (object sender, EventArgs e)
@@ -77,7 +78,7 @@ namespace timeLog
             bool xAreNextTasksOK = string.IsNullOrEmpty (mNextTasks.Text) == false && Shared.ParseTasksString (mNextTasks.Text).Count > 0,
                 xAreCurrentTasksOK = string.IsNullOrEmpty (mCurrentTasks.Text) == false && Shared.ParseTasksString (mCurrentTasks.Text).Count > 0;
 
-            if (iCounter.IsRunning)
+            if (iCounter.AreTasksStarted)
             {
                 // 実行中のタスクを「終了」にして押し出すため、
                 //     そちらもデータが揃っているのを確認
@@ -137,62 +138,55 @@ namespace timeLog
         private void iUpdateStatistics ()
         {
             var xStatistics = Shared.GetStatistics (iPreviousLogs.LogFile);
-            Shared.SaveStatistics (xStatistics.Item2);
-            mStatistics.Text = xStatistics.Item1;
+            Shared.SaveStatistics (xStatistics.LongString);
+            mStatistics.Text = xStatistics.ShortString;
         }
+
+        private bool mContinuesUpdatingElapsedTime;
+
+        // 不要だが一応
+        private Task? mElapsedTimeUpdatingTask;
 
         private void iStartUpdatingElapsedTime ()
         {
-            Task.Run (() =>
+            mElapsedTimeUpdatingTask = Task.Run (() =>
             {
-                // 前回 mWindow.Title などを更新したときの経過秒数
-                // 同じ値を何度も設定することを回避
-                double xPreviousElapsedSeconds = -1;
-
-                while (true)
+                while (mContinuesUpdatingElapsedTime)
                 {
-                    // 自動中断や「中断」ボタンによる中断でもループを抜けようとしたが、
-                    //     100ミリ秒に一度のごく少量の計算なので Task を回しておくのがシンプル
-
-                    if (iCounter.IsRunning == false)
-                        break;
-
-                    TimeSpan xElapsedTime = iCounter.Stopwatch.TotalElapsedTime;
-
-                    // (double) _ticks / TicksPerSecond という割り算なので結果をキャッシュ
-                    // https://source.dot.net/#System.Private.CoreLib/TimeSpan.cs
-                    double xElapsedSeconds = xElapsedTime.TotalSeconds;
-
-                    if (xElapsedSeconds > xPreviousElapsedSeconds)
+                    lock (iCounter.Stopwatch.Locker)
                     {
-                        xPreviousElapsedSeconds = xElapsedSeconds;
-
-                        if (iShared.IsWindowClosed == false)
+                        if (iCounter.AreTasksStarted && iCounter.IsPausedManually == false && iCounter.Stopwatch.IsRunning)
                         {
-                            string xElapsedTimeString = Shared.TimeSpanToString (xElapsedTime);
+                            TimeSpan xElapsedTime = iCounter.Stopwatch.TotalElapsedTime_lock;
 
-                            mWindow.Dispatcher.Invoke (() =>
+                            if (iShared.IsWindowClosed == false)
                             {
-                                // Visual Studio や Google Chrome にならう
-                                mWindow.Title = xElapsedTimeString + " - timeLog";
-                                mElapsedTime.Text = xElapsedTimeString;
-                            });
+                                string xElapsedTimeString = Shared.TimeSpanToString (xElapsedTime);
+
+                                mWindow.Dispatcher.Invoke (() =>
+                                {
+                                    // Visual Studio や Google Chrome にならう
+                                    mWindow.Title = xElapsedTimeString + " - timeLog";
+                                    mElapsedTime.Text = xElapsedTimeString;
+                                });
+                            }
+                        }
+
+                        else
+                        {
+                            if (iShared.IsWindowClosed == false)
+                            {
+                                mWindow.Dispatcher.Invoke (() =>
+                                {
+                                    mWindow.Title = "timeLog";
+                                    mElapsedTime.Clear ();
+                                });
+                            }
                         }
                     }
 
                     // 少々カクつくかもしれないが、このくらいで十分
-
-                    if (iShared.IsWindowClosed == false)
-                        Thread.Sleep (100);
-                }
-
-                if (iShared.IsWindowClosed == false)
-                {
-                    mWindow.Dispatcher.Invoke (() =>
-                    {
-                        mWindow.Title = "timeLog";
-                        mElapsedTime.Clear ();
-                    });
+                    Thread.Sleep (100);
                 }
             });
         }
@@ -203,43 +197,46 @@ namespace timeLog
             {
                 iShared.IsWindowClosed = false;
 
+                // 以下、セッション情報のファイルから読まれたばかりの値が書き込まれるのは、軽微なコストなので無視
+                // イベントのメソッドですぐにセッション情報を書き込む設計の問題だが、これも 0.1 のときの手抜き
+
                 mNextTasks.Text = iShared.Session.GetStringOrDefault ("NextTasks", string.Empty);
 
                 if (bool.TryParse (iShared.Session.GetStringOrDefault ("AreNextTasksValuable", string.Empty), out bool xResult))
                     mAreNextTasksValuable.IsChecked = xResult;
 
-                // 自動中断機能はデフォルトでオン
-                // セッション情報でオフの場合のみオフに
-
-                // iCounter.AutoPauses = true;
-                mAutoPauses.IsChecked = true;
-
-                // 「中断」ボタンにより中断されていないのが初期状態
-                iCounter.IsPausedManually = false;
-
                 iCounter.LoadPreviousInfo ();
 
                 // 起動時に前回の情報が残っていれば、カウント中あるいは中断中（自動、マニュアルの両方）にプログラムが終了したということ
-                // カウント中で、各部のデータが戻り、マニュアルで中断されていて、「再開」ボタンから再スタートできる状態に
+                // カウント中で、各部のデータが戻り、マニュアルで中断されていて、「再開」ボタンにより再スタートできる状態に
 
                 if (iCounter.PreviousStartUtc != null)
                 {
-                    iCounter.IsRunning = true;
+                    iCounter.AreTasksStarted = true;
 
                     mCurrentTasks.Text = iShared.Session.GetStringOrDefault ("CurrentTasks", string.Empty);
 
                     if (bool.TryParse (iShared.Session.GetStringOrDefault ("AutoPauses", string.Empty), out bool xResultAlt))
                     {
-                        // iCounter.AutoPauses = xResultAlt;
                         mAutoPauses.IsChecked = xResultAlt;
+                        iCounter.Stopwatch.AutoPauses_lock = xResultAlt;
                     }
 
+                    else
+                    {
+                        // 自動中断はデフォルトでオン
+
+                        mAutoPauses.IsChecked = true;
+                        iCounter.Stopwatch.AutoPauses_lock = true;
+                    }
+
+                    // 前回のデータが残っていれば、「中断」ボタンによりマニュアルで中断されてからのプログラムの終了とみなされる
                     iCounter.IsPausedManually = true;
 
                     iCounter.Stopwatch.PreviousEntries.Add (new nStopwatchEntry <nEmptyClass, nEmptyStruct>
                     {
                         StartUtc = iCounter.PreviousStartUtc.Value,
-                        EndUtc = iCounter.PreviousStartUtc.Value + iCounter.PreviousElapsedTime
+                        ElapsedTime = iCounter.PreviousElapsedTime ?? TimeSpan.Zero // 起動できないと復旧できない
                     });
 
                     if (bool.TryParse (iShared.Session.GetStringOrDefault ("AreCurrentTasksValuable", string.Empty), out bool xResultAlt1))
@@ -247,6 +244,14 @@ namespace timeLog
 
                     if (bool.TryParse (iShared.Session.GetStringOrDefault ("IsDisoriented", string.Empty), out bool xResultAlt2))
                         mIsDisoriented.IsChecked = xResultAlt2;
+                }
+
+                else
+                {
+                    // 前回のデータがない場合、デフォルトの値がコントロールの初期状態と異なるものだけ変更
+
+                    mAutoPauses.IsChecked = true;
+                    iCounter.Stopwatch.AutoPauses_lock = true; // デフォルトで true だが明示的に
                 }
 
                 // 「～の一部に」とか「読み込みにおいてエラーが～」とかも考えたが、
@@ -263,12 +268,14 @@ namespace timeLog
 
                 mNextTasks.Focus ();
 
+#if DEBUG
+                // テスト時には IME がオフの方が良い
+#else
                 InputMethod.Current.ImeState = InputMethodState.On;
+#endif
 
                 // 別スレッドを作るので、UI 系の処理が終わってから
-
-                if (iCounter.IsRunning)
-                    iStartUpdatingElapsedTime ();
+                iStartUpdatingElapsedTime ();
             }
 
             catch (Exception xException)
@@ -311,20 +318,36 @@ namespace timeLog
 
         private void iAddLog ()
         {
-            iPreviousLogs.AddLog (new LogInfo (iCounter.PreviousStartUtc ?? iCounter.Stopwatch.CurrentEntryStartUtc!.Value,
-                Shared.ParseTasksString (mCurrentTasks.Text), mAreCurrentTasksValuable.IsChecked!.Value, mIsDisoriented.IsChecked!.Value,
-                iCounter.Stopwatch.TotalElapsedTime));
+            lock (iCounter.Stopwatch.Locker)
+            {
+                DateTime xStartUtc;
 
-            iCounter.PreviousStartUtc = null;
-            // iCounter.PreviousElapsedTime = TimeSpan.Zero;
+                // 前回のデータがあれば、前回の続きなのでその値を使う
+                // なくて、nStopwatch 内に古いデータがあるなら、初回の Pause/Stop の値を使う
+                // いずれもないなら、新規カウントにおいて一度も Pause/Stop されていない状態なので現行の値を
 
-            iCounter.IsRunning = false;
-            // iCounter.AutoPauses = true;
-            iCounter.IsPausedManually = false;
-            iCounter.Stopwatch.Reset ();
+                if (iCounter.PreviousStartUtc != null)
+                    xStartUtc = iCounter.PreviousStartUtc.Value;
+
+                else if (iCounter.Stopwatch.PreviousEntries.Count > 0)
+                    xStartUtc = iCounter.Stopwatch.PreviousEntries [0].StartUtc;
+
+                else xStartUtc = iCounter.Stopwatch.CurrentEntryStartUtc!.Value;
+
+                iPreviousLogs.AddLog (new LogInfo (xStartUtc, Shared.ParseTasksString (mCurrentTasks.Text),
+                    mAreCurrentTasksValuable.IsChecked!.Value, mIsDisoriented.IsChecked!.Value, iCounter.Stopwatch.TotalElapsedTime_lock));
+
+                iCounter.PreviousStartUtc = null;
+                iCounter.PreviousElapsedTime = null;
+
+                iCounter.AreTasksStarted = false;
+                iCounter.IsPausedManually = false;
+                iCounter.Stopwatch.Reset_lock ();
+            }
 
             mCurrentTasks.Clear ();
             mAutoPauses.IsChecked = true;
+            iCounter.Stopwatch.AutoPauses_lock = true;
             mAreCurrentTasksValuable.IsChecked = false;
             mIsDisoriented.IsChecked = false;
 
@@ -335,17 +358,18 @@ namespace timeLog
         {
             try
             {
-                if (iCounter.IsRunning)
+                if (iCounter.AreTasksStarted)
                 {
                     iAddLog ();
                     iUpdateStatistics ();
                 }
 
-                iCounter.IsRunning = true;
-                iCounter.Stopwatch.Start ();
+                iCounter.AreTasksStarted = true;
+                iCounter.Stopwatch.Start_lock ();
 
                 mCurrentTasks.Text = string.Join (Environment.NewLine, Shared.ParseTasksString (mNextTasks.Text));
                 mAutoPauses.IsChecked = true;
+                iCounter.Stopwatch.AutoPauses_lock = true;
                 mAreCurrentTasksValuable.IsChecked = mAreNextTasksValuable.IsChecked;
                 mIsDisoriented.IsChecked = false;
 
@@ -353,8 +377,6 @@ namespace timeLog
                 mAreNextTasksValuable.IsChecked = false;
 
                 iUpdateControls ();
-
-                iStartUpdatingElapsedTime ();
             }
 
             catch (Exception xException)
@@ -383,7 +405,7 @@ namespace timeLog
         {
             try
             {
-                iCounter.AutoPauses = mAutoPauses.IsChecked!.Value;
+                iCounter.Stopwatch.AutoPauses_lock = mAutoPauses.IsChecked!.Value;
 
                 iShared.Session.SetString ("AutoPauses", mAutoPauses.IsChecked!.Value.ToString ());
                 iShared.Session.Save ();
@@ -404,14 +426,14 @@ namespace timeLog
                 if (iCounter.IsPausedManually == false)
                 {
                     iCounter.IsPausedManually = true;
-                    iCounter.Stopwatch.Pause ();
+                    iCounter.Stopwatch.Pause_lock ();
                     mPauseOrResumeCounting.Content = "再開";
                 }
 
                 else
                 {
                     iCounter.IsPausedManually = false;
-                    iCounter.Stopwatch.Resume ();
+                    iCounter.Stopwatch.Resume_lock ();
                     mPauseOrResumeCounting.Content = "中断";
                 }
 
@@ -460,6 +482,8 @@ namespace timeLog
         {
             try
             {
+                if (iCounter.AreTasksStarted && iCounter.IsPausedManually == false)
+                    iCounter.Stopwatch.Knock_lock (true);
             }
 
             catch (Exception xException)
@@ -472,6 +496,8 @@ namespace timeLog
         {
             try
             {
+                if (iCounter.AreTasksStarted && iCounter.IsPausedManually == false)
+                    iCounter.Stopwatch.Knock_lock (true);
             }
 
             catch (Exception xException)
@@ -595,7 +621,8 @@ namespace timeLog
         {
             try
             {
-                iDeleteLog ();
+                if (iDeleteLog ())
+                    iUpdateStatistics ();
             }
 
             catch (Exception xException)
@@ -621,14 +648,8 @@ namespace timeLog
         {
             try
             {
-                // null のチェックと設定はなくてよいが、作法として
-                // IsRunning や IsDisposed を見るまでは不要
-
-                if (mGlobalHook != null)
-                {
-                    mGlobalHook.Dispose ();
-                    mGlobalHook = null;
-                }
+                mGlobalHook!.Dispose ();
+                iCounter.Stopwatch.Dispose (); // ついでに
 
                 // Just before a window actually closes, Closed is raised とのこと
                 // コントロールの情報をここで集めるのは安全である可能性が高い
