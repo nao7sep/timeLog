@@ -153,9 +153,28 @@ namespace timeLog
             {
                 while (mContinuesUpdatingElapsedTime)
                 {
-                    lock (iCounter.Stopwatch.Locker)
+                    // ここで lock (iCounter.Stopwatch.Locker) を行うと、
+                    //     mWindow_Closed で iCounter.Stopwatch.TotalElapsedTime_lock がデッドロックになり、
+                    //     ウィンドウが閉じてからもスレッドが残り、プロセスが終わらない
+                    // デバッグモードにより mWindow_Closed で止めて iCounter.Stopwatch.TotalElapsedTime_lock を見ると、
+                    //     デッドロック状態なのでタイムアウトになり、その旨がエラーメッセージとして表示される
+
+                    // 警戒するべきは、「if 文の時点ではそうだったのに、次の瞬間にはそうでなくなっていた」のよくあるケース
+
+                    // iCounter.Stopwatch.TotalElapsedTime_lock は、iCounter.Stopwatch が Dispose されてからも落ちることはない
+                    // しかし、その仕様は今後変更される可能性があるため、この while ループが終わってからの Dispose になるように mWindow_Closed で待つ
+
+                    // ウィンドウが完全に破棄されてからの mWindow.Dispatcher.Invoke は、落ちる可能性がある
+                    // UI スレッドがなくなっていれば Invoke は単に何もしないと思うが、100％でないため try/catch に入れる
+
+                    try
                     {
-                        if (iCounter.AreTasksStarted && iCounter.IsPausedManually == false && iCounter.Stopwatch.IsRunning)
+                        // 同じ値を何度も設定しないように、さらに iCounter.IsPausedManually や iCounter.Stopwatch.IsRunning を見たり、
+                        //     前回と同じ文字列なら Invoke を呼ばなかったりの選択肢もあるが、
+                        //     どのようなステートであっても表示が乱れないように条件分岐を考えると意外とややこしい
+                        // 計測中なら経過時間を表示し、そうでないなら空にするという単純な実装でも、100ミリ秒に1回なのでコストは軽微
+
+                        if (iCounter.AreTasksStarted)
                         {
                             TimeSpan xElapsedTime = iCounter.Stopwatch.TotalElapsedTime_lock;
 
@@ -183,6 +202,10 @@ namespace timeLog
                                 });
                             }
                         }
+                    }
+
+                    catch
+                    {
                     }
 
                     // 少々カクつくかもしれないが、このくらいで十分
@@ -227,7 +250,7 @@ namespace timeLog
                         // 自動中断はデフォルトでオン
 
                         mAutoPauses.IsChecked = true;
-                        iCounter.Stopwatch.AutoPauses_lock = true;
+                        iCounter.Stopwatch.AutoPauses_lock = true; // デフォルトで true だが明示的に
                     }
 
                     // 前回のデータが残っていれば、「中断」ボタンによりマニュアルで中断されてからのプログラムの終了とみなされる
@@ -251,7 +274,7 @@ namespace timeLog
                     // 前回のデータがない場合、デフォルトの値がコントロールの初期状態と異なるものだけ変更
 
                     mAutoPauses.IsChecked = true;
-                    iCounter.Stopwatch.AutoPauses_lock = true; // デフォルトで true だが明示的に
+                    iCounter.Stopwatch.AutoPauses_lock = true;
                 }
 
                 // 「～の一部に」とか「読み込みにおいてエラーが～」とかも考えたが、
@@ -267,14 +290,14 @@ namespace timeLog
                 iUpdateStatistics ();
 
                 mNextTasks.Focus ();
-
 #if DEBUG
                 // テスト時には IME がオフの方が良い
 #else
                 InputMethod.Current.ImeState = InputMethodState.On;
 #endif
-
                 // 別スレッドを作るので、UI 系の処理が終わってから
+
+                mContinuesUpdatingElapsedTime = true;
                 iStartUpdatingElapsedTime ();
             }
 
@@ -316,34 +339,37 @@ namespace timeLog
             }
         }
 
+        private DateTime iGetStartUtc ()
+        {
+            // 前回のデータがあれば、前回の続きなのでその値を使う
+            // なくて、nStopwatch 内に古いデータがあるなら、初回の Pause/Stop の値を使う
+            // いずれもないなら、新規カウントにおいて一度も Pause/Stop されていない状態なので現行の値を
+
+            if (iCounter.PreviousStartUtc != null)
+                return iCounter.PreviousStartUtc.Value;
+
+            else if (iCounter.Stopwatch.PreviousEntries.Count > 0)
+                return iCounter.Stopwatch.PreviousEntries [0].StartUtc;
+
+            else return iCounter.Stopwatch.CurrentEntryStartUtc!.Value;
+        }
+
         private void iAddLog ()
         {
-            lock (iCounter.Stopwatch.Locker)
-            {
-                DateTime xStartUtc;
+            // 経過時間を表示するスレッドの iCounter.Stopwatch.TotalElapsedTime_lock と
+            //     こちらの iCounter.Stopwatch.Reset_lock のことを考えて lock を検討したが、やめておく
+            // 計測終了時に100ミリ秒だけ経過時間が（空でなく）0になるかもしれないが、
+            //     絶妙のタイミングを要することで発生確率が極めて低いし、ユーザーへの影響もない
 
-                // 前回のデータがあれば、前回の続きなのでその値を使う
-                // なくて、nStopwatch 内に古いデータがあるなら、初回の Pause/Stop の値を使う
-                // いずれもないなら、新規カウントにおいて一度も Pause/Stop されていない状態なので現行の値を
+            iPreviousLogs.AddLog (new LogInfo (iGetStartUtc (), Shared.ParseTasksString (mCurrentTasks.Text),
+                mAreCurrentTasksValuable.IsChecked!.Value, mIsDisoriented.IsChecked!.Value, iCounter.Stopwatch.TotalElapsedTime_lock));
 
-                if (iCounter.PreviousStartUtc != null)
-                    xStartUtc = iCounter.PreviousStartUtc.Value;
+            iCounter.PreviousStartUtc = null;
+            iCounter.PreviousElapsedTime = null;
 
-                else if (iCounter.Stopwatch.PreviousEntries.Count > 0)
-                    xStartUtc = iCounter.Stopwatch.PreviousEntries [0].StartUtc;
-
-                else xStartUtc = iCounter.Stopwatch.CurrentEntryStartUtc!.Value;
-
-                iPreviousLogs.AddLog (new LogInfo (xStartUtc, Shared.ParseTasksString (mCurrentTasks.Text),
-                    mAreCurrentTasksValuable.IsChecked!.Value, mIsDisoriented.IsChecked!.Value, iCounter.Stopwatch.TotalElapsedTime_lock));
-
-                iCounter.PreviousStartUtc = null;
-                iCounter.PreviousElapsedTime = null;
-
-                iCounter.AreTasksStarted = false;
-                iCounter.IsPausedManually = false;
-                iCounter.Stopwatch.Reset_lock ();
-            }
+            iCounter.AreTasksStarted = false;
+            iCounter.IsPausedManually = false;
+            iCounter.Stopwatch.Reset_lock ();
 
             mCurrentTasks.Clear ();
             mAutoPauses.IsChecked = true;
@@ -482,13 +508,20 @@ namespace timeLog
         {
             try
             {
-                if (iCounter.AreTasksStarted && iCounter.IsPausedManually == false)
+                // 元データ感のより強い mAutoPauses.IsChecked!.Value を見ると、
+                //     「System.InvalidOperationException: このオブジェクトは別のスレッドに所有されているため、呼び出しスレッドはこのオブジェクトにアクセスできません」になる
+                // キーボードなどのフックが別スレッドによる処理であることを忘れていた
+
+                if (iCounter.AreTasksStarted && iCounter.Stopwatch.AutoPauses_lock && iCounter.IsPausedManually == false)
                     iCounter.Stopwatch.Knock_lock (true);
             }
 
             catch (Exception xException)
             {
-                iShared.HandleException (this, xException);
+                // this を渡して try 側で例外を投げてみると、プログラムが落ち、
+                //     （おそらく Windows の UI を更新するプロセスが影響を受けるほどのリソース消費がどこかで起こって）マウスカーソルがカクつく
+                // MessageBox.Show が Windows の API への処理の丸投げだからだろう
+                iShared.HandleException (null, xException);
             }
         }
 
@@ -496,13 +529,13 @@ namespace timeLog
         {
             try
             {
-                if (iCounter.AreTasksStarted && iCounter.IsPausedManually == false)
+                if (iCounter.AreTasksStarted && iCounter.Stopwatch.AutoPauses_lock && iCounter.IsPausedManually == false)
                     iCounter.Stopwatch.Knock_lock (true);
             }
 
             catch (Exception xException)
             {
-                iShared.HandleException (this, xException);
+                iShared.HandleException (null, xException);
             }
         }
 
@@ -534,7 +567,6 @@ namespace timeLog
                     mElapsedTime.FontSize = iShared.GetProperFontSize (mElapsedTime.ActualWidth, mElapsedTime.ActualHeight, "999時間59分", xTypeface, xPixelsPerDip);
 
                     // 不要だが一応
-                    // いずれ必要になるかもしれない
                     iUpdateControls ();
                 }
             }
@@ -644,19 +676,62 @@ namespace timeLog
             }
         }
 
+        private void mWindow_Closing (object sender, CancelEventArgs e)
+        {
+            try
+            {
+                // 自動中断中かどうかは考慮されない
+                // 閉じる操作が検出されて直前に再開される可能性が高いということもある
+                // プログラム再起動時に「再開」が可能な状態になるため、中断中の終了だと確認されない
+
+                if (iCounter.AreTasksStarted && iCounter.IsPausedManually == false)
+                {
+                    if (MessageBox.Show (this, "計測中ですが、終了しますか？", string.Empty, MessageBoxButton.YesNo, MessageBoxImage.None, MessageBoxResult.No) == MessageBoxResult.No)
+                        e.Cancel = true;
+                }
+            }
+
+            catch (Exception xException)
+            {
+                iShared.HandleException (this, xException);
+            }
+        }
+
         private void mWindow_Closed (object sender, EventArgs e)
         {
             try
             {
                 mGlobalHook!.Dispose ();
-                iCounter.Stopwatch.Dispose (); // ついでに
 
                 // Just before a window actually closes, Closed is raised とのこと
                 // コントロールの情報をここで集めるのは安全である可能性が高い
                 // https://docs.microsoft.com/en-us/dotnet/desktop/wpf/windows/
 
+                if (iCounter.AreTasksStarted)
+                {
+                    iCounter.PreviousStartUtc = iGetStartUtc ();
+                    iCounter.PreviousElapsedTime = iCounter.Stopwatch.TotalElapsedTime_lock;
+                }
+
+                else
+                {
+                    iCounter.PreviousStartUtc = null;
+                    iCounter.PreviousElapsedTime = null;
+                }
+
                 iCounter.ApplyPreviousInfo ();
                 iShared.Session.Save ();
+
+                // ウィンドウが完全に破棄されてからの別スレッドによる mWindow.Dispatcher.Invoke の回避のため
+                // タイムアウトを指定して mWindow_Closed を抜けたところで別スレッド内で万が一にもデッドロックが発生していればプロセスは終わらない
+                // timeLog 側で lock をなくし、デッドロックの可能性がゼロになったはずなので、しばらく様子見
+
+                mContinuesUpdatingElapsedTime = false;
+                mElapsedTimeUpdatingTask!.Wait (300);
+
+                // こちらでは待つ必要がない
+                // バックグラウンドスレッドだし、保存の必要なステート情報もない
+                iCounter.Stopwatch.Dispose ();
 
                 iShared.IsWindowClosed = true;
             }

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:timeLog"
         mc:Ignorable="d"
-        Title="timeLog" Width="1200" Height="600" Background="#F0F0F0" FontFamily="Meiryo" FontSize="12" Initialized="mWindow_Initialized" Loaded="mWindow_Loaded" Closed="mWindow_Closed">
+        Title="timeLog" Width="1200" Height="600" Background="#F0F0F0" FontFamily="Meiryo" FontSize="12" Initialized="mWindow_Initialized" Loaded="mWindow_Loaded" Closing="mWindow_Closing" Closed="mWindow_Closed">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="6*" />
