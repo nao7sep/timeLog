@@ -38,16 +38,14 @@ namespace timeLog
         public static void ApplyPreviousInfo ()
         {
             if (PreviousStartUtc != null)
-            {
                 iShared.Session.SetString ("PreviousStartUtc", PreviousStartUtc.Value.ToString ("O"));
-                iShared.Session.SetString ("PreviousElapsedTime", (PreviousElapsedTime ?? TimeSpan.Zero).ToString ("c"));
-            }
 
-            else
-            {
-                iShared.Session.Delete ("PreviousStartUtc");
-                iShared.Session.Delete ("PreviousElapsedTime");
-            }
+            else iShared.Session.Delete ("PreviousStartUtc");
+
+            if (PreviousElapsedTime != null)
+                iShared.Session.SetString ("PreviousElapsedTime", PreviousElapsedTime.Value.ToString ("c"));
+
+            else iShared.Session.Delete ("PreviousElapsedTime");
         }
 
         // mStartNextTasks によりタスクが開始され、mEndCurrentTasks により終了されるまで true に
