@@ -4,6 +4,17 @@ Compiled
 [Copy]
 timeLog\bin\Release\net6.0-windows > Compiled
 
+[Delete]
+Compiled/runtimes/linux-arm
+Compiled/runtimes/linux-arm64
+Compiled/runtimes/linux-x64
+Compiled/runtimes/osx-arm64
+Compiled/runtimes/osx-x64
+Compiled/timeLog.Errors.txt
+Compiled/timeLog.Session.txt
+Compiled/timeLog.Statistics.txt
+Compiled/timeLogs.txt
+
 [Exclude]
 .git
 .vs

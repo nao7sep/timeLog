@@ -61,9 +61,12 @@ namespace timeLog
                 // 不要
                 // iUpdateControls ();
 
+                // 最初、KeyTyped と MouseClicked で実装したが、以下のように変更
+                // 詳細を taskKiller のログに
+
                 mGlobalHook = new TaskPoolGlobalHook ();
-                mGlobalHook.KeyTyped += mGlobalHook_KeyTyped;
-                mGlobalHook.MouseClicked += mGlobalHook_MouseClicked;
+                mGlobalHook.KeyPressed += mGlobalHook_KeyPressed;
+                mGlobalHook.MousePressed += mGlobalHook_MousePressed;
                 mHookingTask = mGlobalHook.RunAsync ();
             }
 
@@ -339,21 +342,6 @@ namespace timeLog
             }
         }
 
-        private DateTime iGetStartUtc ()
-        {
-            // 前回のデータがあれば、前回の続きなのでその値を使う
-            // なくて、nStopwatch 内に古いデータがあるなら、初回の Pause/Stop の値を使う
-            // いずれもないなら、新規カウントにおいて一度も Pause/Stop されていない状態なので現行の値を
-
-            if (iCounter.PreviousStartUtc != null)
-                return iCounter.PreviousStartUtc.Value;
-
-            else if (iCounter.Stopwatch.PreviousEntries.Count > 0)
-                return iCounter.Stopwatch.PreviousEntries [0].StartUtc;
-
-            else return iCounter.Stopwatch.CurrentEntryStartUtc!.Value;
-        }
-
         private void iAddLog ()
         {
             // 経過時間を表示するスレッドの iCounter.Stopwatch.TotalElapsedTime_lock と
@@ -361,7 +349,7 @@ namespace timeLog
             // 計測終了時に100ミリ秒だけ経過時間が（空でなく）0になるかもしれないが、
             //     絶妙のタイミングを要することで発生確率が極めて低いし、ユーザーへの影響もない
 
-            iPreviousLogs.AddLog (new LogInfo (iGetStartUtc (), Shared.ParseTasksString (mCurrentTasks.Text),
+            iPreviousLogs.AddLog (new LogInfo (iCounter.GetStartUtc (), Shared.ParseTasksString (mCurrentTasks.Text),
                 mAreCurrentTasksValuable.IsChecked!.Value, mIsDisoriented.IsChecked!.Value, iCounter.Stopwatch.TotalElapsedTime_lock));
 
             iCounter.PreviousStartUtc = null;
@@ -504,7 +492,7 @@ namespace timeLog
             }
         }
 
-        private void mGlobalHook_KeyTyped (object? sender, KeyboardHookEventArgs e)
+        private void mGlobalHook_KeyPressed (object? sender, KeyboardHookEventArgs e)
         {
             try
             {
@@ -514,6 +502,8 @@ namespace timeLog
 
                 if (iCounter.AreTasksStarted && iCounter.Stopwatch.AutoPauses_lock && iCounter.IsPausedManually == false)
                     iCounter.Stopwatch.Knock_lock (true);
+
+                // iUpdateControls ();
             }
 
             catch (Exception xException)
@@ -525,12 +515,14 @@ namespace timeLog
             }
         }
 
-        private void mGlobalHook_MouseClicked (object? sender, MouseHookEventArgs e)
+        private void mGlobalHook_MousePressed (object? sender, MouseHookEventArgs e)
         {
             try
             {
                 if (iCounter.AreTasksStarted && iCounter.Stopwatch.AutoPauses_lock && iCounter.IsPausedManually == false)
                     iCounter.Stopwatch.Knock_lock (true);
+
+                // iUpdateControls ();
             }
 
             catch (Exception xException)
@@ -640,6 +632,8 @@ namespace timeLog
 
                     if (iDeleteLog ())
                         iUpdateStatistics ();
+
+                    iUpdateControls ();
                 }
             }
 
@@ -655,6 +649,8 @@ namespace timeLog
             {
                 if (iDeleteLog ())
                     iUpdateStatistics ();
+
+                iUpdateControls ();
             }
 
             catch (Exception xException)
@@ -707,20 +703,8 @@ namespace timeLog
                 // コントロールの情報をここで集めるのは安全である可能性が高い
                 // https://docs.microsoft.com/en-us/dotnet/desktop/wpf/windows/
 
-                if (iCounter.AreTasksStarted)
-                {
-                    iCounter.PreviousStartUtc = iGetStartUtc ();
-                    iCounter.PreviousElapsedTime = iCounter.Stopwatch.TotalElapsedTime_lock;
-                }
-
-                else
-                {
-                    iCounter.PreviousStartUtc = null;
-                    iCounter.PreviousElapsedTime = null;
-                }
-
-                iCounter.ApplyPreviousInfo ();
-                iShared.Session.Save ();
+                // アプリでなく（Windows の）セッションの終了時、Closing が MessageBox で引っ掛かると Closed が起こらないようなので、
+                //     セッション情報の保存の処理を App.iSavePreviousInfo に移した
 
                 // ウィンドウが完全に破棄されてからの別スレッドによる mWindow.Dispatcher.Invoke の回避のため
                 // タイムアウトを指定して mWindow_Closed を抜けたところで別スレッド内で万が一にもデッドロックが発生していればプロセスは終わらない
@@ -731,6 +715,11 @@ namespace timeLog
 
                 // こちらでは待つ必要がない
                 // バックグラウンドスレッドだし、保存の必要なステート情報もない
+
+                // nStopwatch は Dispose されてからもデータの読み出しが可能
+                // セッション情報の保存の処理を App.iSavePreviousInfo に移したが、
+                //     Dispose をなしにする必要はない
+
                 iCounter.Stopwatch.Dispose ();
 
                 iShared.IsWindowClosed = true;

@@ -73,5 +73,20 @@ namespace timeLog
             AutoPausingInterval = TimeSpan.FromSeconds (3)
 #endif
         };
+
+        public static DateTime GetStartUtc ()
+        {
+            // 前回のデータがあれば、前回の続きなのでその値を使う
+            // なくて、nStopwatch 内に古いデータがあるなら、初回の Pause/Stop の値を使う
+            // いずれもないなら、新規カウントにおいて一度も Pause/Stop されていない状態なので現行の値を
+
+            if (PreviousStartUtc != null)
+                return PreviousStartUtc.Value;
+
+            else if (Stopwatch.PreviousEntries.Count > 0)
+                return Stopwatch.PreviousEntries [0].StartUtc;
+
+            else return Stopwatch.CurrentEntryStartUtc!.Value;
+        }
     }
 }

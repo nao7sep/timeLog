@@ -595,3 +595,190 @@
     タスクリストが1行1タスクだという UI の表示もなくてよい。
 
 [完了] 休憩時などに一時停止できるようにする
+[完了] カウント中に閉じようとすると確認されるようにする
+
+    閉じるとカウントが止まるソフトになる。
+
+[却下] lock の必要なところを探す
+
+    軽い気持ちで lock したところデッドロックでプロセスが終わらなくなったので、むしろ timeLog 側では lock なしで問題なく動作させる方針に。
+
+[完了] 設計の見直しが統計処理の機能に影響するか調べる
+
+    大丈夫だった。
+
+[完了] カウント中に Windows からログアウトできるようにする
+
+    timeLog が原因ですぐにログアウトできなかったり、（プロセスごと止められる形で）アプリが強制終了されたりを回避。
+
+    --------------------------------------------------------------------------------
+
+    Closing は Windows 終了時には実行されなかった記憶がある。ドキュメントで確認する。
+
+    --------------------------------------------------------------------------------
+
+    If a session ends because a user logs off or shuts down, Closing is not raised とのこと。
+
+    Window.Closing Event (System.Windows) | Microsoft Learn
+    https://learn.microsoft.com/en-us/dotnet/api/system.windows.window.closing
+
+[完了] コードを全体的に再チェック
+
+    Nekote 側を変更するので、いろいろな部分が影響を受ける。
+
+[完了] 前回のセッションの開始日時と経過時間のラウンドトリップをテスト
+
+    値がない場合も。
+
+[却下] カウントの状態が3色で区別されるようにする
+
+    カウント前はデフォルトの UI のまま。
+
+    カウント中は、進んでいるのだから青。
+
+    自動中断されたら、すぐ戻れる状態なので黄色。
+
+    ボタンで中断されたら、ガッツリ止められているので赤。
+
+    --------------------------------------------------------------------------------
+
+    アホっぽくなりそうなので、まだやめておく。状態の誤認によるミスが続けば実装を考える。
+
+[完了] 出力される各ファイルの内容をチェック
+[完了] mGlobalHook_KeyTyped などで例外を発生させてみるテストを行う
+[完了] いったんコミット（繰り返す）
+[完了] セッション情報の保存に Closed を使わないようにする
+
+    アプリの終了と関連のあるイベントは以下の四つ。
+
+    Window.Closing Event (System.Windows) | Microsoft Learn
+    https://learn.microsoft.com/en-us/dotnet/api/system.windows.window.closing
+
+    Window.Closed Event (System.Windows) | Microsoft Learn
+    https://learn.microsoft.com/en-us/dotnet/api/system.windows.window.closed
+
+    Application.SessionEnding Event (System.Windows) | Microsoft Learn
+    https://learn.microsoft.com/en-us/dotnet/api/system.windows.application.sessionending
+
+    Application.Exit Event (System.Windows) | Microsoft Learn
+    https://learn.microsoft.com/en-us/dotnet/api/system.windows.application.exit
+
+    --------------------------------------------------------------------------------
+
+    Lifetime events of a WPF application - CodeProject
+    https://www.codeproject.com/Articles/403418/Lifetime-events-of-a-WPF-application
+
+    docs-desktop/application-management-overview.md at main · dotnet/docs-desktop
+    https://github.com/dotnet/docs-desktop/blob/main/dotnet-desktop-guide/framework/wpf/app-development/application-management-overview.md
+
+    --------------------------------------------------------------------------------
+
+    MS のページによると、SessionEnding 時、つまり、Windows からのログオフやシャットダウンでは Closing が起こらないとのこと。
+
+    MS のページにおける、何が起こって何が起こらないかに関する情報はそのくらい。
+
+    試したところ、次のようになった。
+
+    * アプリを終了すれば、Closing → Closed → Exit
+    * 計測中でないときにセッションを終了すれば、SessionEnding → Closing → Closed
+    * 計測中にセッションを終了すれば、Closing → SessionEnding
+
+    計測中のセッション終了における Closing では、ユーザーが MessageBox に対処できない。Closing → Closed というのは一つの流れで、Closing で止まるから Closed に到達しないか。SessionEnding が Closing より遅れるのも、基準が分からない。いくつかのページでは SessionEnding 時も起こるかのように書かれている Exit が、SessionEnding が空でも起こらないのも、基準が分からない。MS のドキュメントでは SessionEnding 時には無視されるとのことである Closing が起こるのも謎。
+
+    ちょっとググったくらいでは、はっきりとした情報は見つからなかった。
+
+    抜けられない Closing の場合にそれが SessionEnding より先行するのは、はっきりとタイムスタンプまで出ているので間違いないとみなす。
+
+    実装としては、次のような考え方が現実的。
+
+    * Closing は必要に応じて途中で打ち切られるため、閉じる前の確認など、最小限の対話のみとする
+    * Closed は、Closing 次第で呼ばれたり呼ばれなかったりなので、ウィンドウ関連の、なくても困らない後片付け程度にしておく
+    * SessionEnding は、本来、シャットダウンを止めるためのイベントとのことだが、Exit の代わりになっている部分もある
+    * データの保存などは、SessionEnding と Exit のいずれかにおいて一度だけ行われるようにする
+
+[完了] 各メソッドでの iUpdateControls の必要性を考える
+[完了] SharpHook のドキュメントに全体的に目を通す
+
+    実装が終わってから。作法の忘れを探す。
+
+    --------------------------------------------------------------------------------
+
+    最初、KeyTyped で実装したが、それではカーソルキーが検出されなかった。文字が入力されないと KeyTyped は起こらない。KeyPressed への変更により解決した。
+
+    マウスも、MouseClicked ではウィンドウのドラッグなどが検出されなかった。ドラッグ開始時にクリックが行われることも確かだが、ここでの MouseClicked は、その場でクリックされた場合のみのようだ。MousePressed への変更により解決。
+
+    Native Functions
+    https://sharphook.tolik.io/v3.1.1/articles/native.html
+
+[完了] srcZip.txt の更新が必要か調べる
+
+    以下の、テスト時のファイルの混入を回避。
+
+    Compiled/timeLog.Errors.txt
+    Compiled/timeLog.Session.txt
+    Compiled/timeLog.Statistics.txt
+    Compiled/timeLogs.txt
+
+    --------------------------------------------------------------------------------
+
+    SharpHook 関連の DLL としては、以下のものが入る。
+
+    Compiled/runtimes/linux-arm/native/libuiohook.so
+    Compiled/runtimes/linux-arm/native/libuiohook.so.1
+    Compiled/runtimes/linux-arm/native/libuiohook.so.1.2.0
+    Compiled/runtimes/linux-arm64/native/libuiohook.so
+    Compiled/runtimes/linux-arm64/native/libuiohook.so.1
+    Compiled/runtimes/linux-arm64/native/libuiohook.so.1.2.0
+    Compiled/runtimes/linux-x64/native/libuiohook.so
+    Compiled/runtimes/linux-x64/native/libuiohook.so.1
+    Compiled/runtimes/linux-x64/native/libuiohook.so.1.2.0
+    Compiled/runtimes/osx-arm64/native/libuiohook.1.2.0.dylib
+    Compiled/runtimes/osx-arm64/native/libuiohook.1.dylib
+    Compiled/runtimes/osx-arm64/native/libuiohook.dylib
+    Compiled/runtimes/osx-x64/native/libuiohook.1.2.0.dylib
+    Compiled/runtimes/osx-x64/native/libuiohook.1.dylib
+    Compiled/runtimes/osx-x64/native/libuiohook.dylib
+    Compiled/runtimes/win-arm/native/uiohook.dll
+    Compiled/runtimes/win-arm64/native/uiohook.dll
+    Compiled/runtimes/win-x64/native/uiohook.dll
+    Compiled/runtimes/win-x86/native/uiohook.dll
+
+    timeLog が四つの win* のうち x64 以外のどれで動くか分からないが、IDE では Any CPU でのコンパイルであり、.NET のバイナリーは現時点においては仮想マシンを必要とする中間言語的なものの認識なので、win* を四つとも残す。
+
+    --------------------------------------------------------------------------------
+
+    Compiled/runtimes/linux-arm
+    Compiled/runtimes/linux-arm64
+    Compiled/runtimes/linux-x64
+    Compiled/runtimes/osx-arm64
+    Compiled/runtimes/osx-x64
+
+    の五つのサブディレクトリーを中身ごと消しても、timeLog.deps.json にはアセンブリーの情報が残る。
+
+    不整合になるが、そもそも timeLog.deps.json がなくてもプログラムは起動するようなので、何もせずに様子見。
+
+    --------------------------------------------------------------------------------
+
+    MyApp.deps.json is a list of dependencies, as well as compilation context data and compilation dependencies. Not technically required, but required to use the servicing or package cache/shared package install features とのこと。
+
+    c# - What is deps.json, and how do I make it use relative paths? - Stack Overflow
+    https://stackoverflow.com/questions/40849745/what-is-deps-json-and-how-do-i-make-it-use-relative-paths
+
+    timeLog.dll あるいは timeLog.exe にさらに別のアプリからリンクする場合に何が必要かをアプリ側が把握するためのファイルの可能性が高い。そういうリンクは今のところ想定されないため、timeLog.deps.json の内容はどうでもいい。
+
+    消すことも考えたが、Nekote に関する情報も以下のように入っている。
+
+    "Nekote/0.0.2.0": {
+        "runtime": {
+            "Nekote.dll": {
+                "assemblyVersion": "0.0.2.0",
+                "fileVersion": "0.0.2.0"
+            }
+        }
+    }
+
+    まだ黎明期の Nekote に今後、後方互換性のない更新が施されることは何度もあるだろうから、どのバージョンの Nekote を必要とするのかすぐ分かる利点に着目して一応残す。
+
+[完了] README.md を更新
+[完了] パソコンの再起動でもセッション情報が保存されるのを確認
+[完了] [9/24] いったんコミット（繰り返す）
