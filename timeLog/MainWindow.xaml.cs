@@ -109,6 +109,9 @@ namespace timeLog
 
                 else mEndCurrentTasks.IsEnabled = false;
 
+                mResultsLabel.Visibility = Visibility.Visible;
+                mResults.Visibility = Visibility.Visible;
+
                 mElapsedTimeLabel.Visibility = Visibility.Visible;
                 mElapsedTime.Visibility = Visibility.Visible;
             }
@@ -127,6 +130,9 @@ namespace timeLog
                 mAreCurrentTasksValuable.IsEnabled = false;
                 mIsDisoriented.IsEnabled = false;
                 mEndCurrentTasks.IsEnabled = false;
+
+                mResultsLabel.Visibility = Visibility.Collapsed;
+                mResults.Visibility = Visibility.Collapsed;
 
                 mElapsedTimeLabel.Visibility = Visibility.Collapsed;
                 mElapsedTime.Visibility = Visibility.Collapsed;
@@ -270,6 +276,8 @@ namespace timeLog
 
                     if (bool.TryParse (iShared.Session.GetStringOrDefault ("IsDisoriented", string.Empty), out bool xResultAlt2))
                         mIsDisoriented.IsChecked = xResultAlt2;
+
+                    mResults.Text = iShared.Session.GetStringOrDefault ("Results", string.Empty);
                 }
 
                 else
@@ -349,8 +357,11 @@ namespace timeLog
             // 計測終了時に100ミリ秒だけ経過時間が（空でなく）0になるかもしれないが、
             //     絶妙のタイミングを要することで発生確率が極めて低いし、ユーザーへの影響もない
 
+            List <string> xResults = Shared.ParseTasksString (mResults.Text);
+
             iPreviousLogs.AddLog (new LogInfo (iCounter.GetStartUtc (), Shared.ParseTasksString (mCurrentTasks.Text),
-                mAreCurrentTasksValuable.IsChecked!.Value, mIsDisoriented.IsChecked!.Value, iCounter.Stopwatch.TotalElapsedTime_lock));
+                mAreCurrentTasksValuable.IsChecked!.Value, mIsDisoriented.IsChecked!.Value, iCounter.Stopwatch.TotalElapsedTime_lock,
+                xResults.Count > 0 ? xResults : null));
 
             iCounter.PreviousStartUtc = null;
             iCounter.PreviousElapsedTime = null;
@@ -364,6 +375,7 @@ namespace timeLog
             iCounter.Stopwatch.AutoPauses_lock = true;
             mAreCurrentTasksValuable.IsChecked = false;
             mIsDisoriented.IsChecked = false;
+            mResults.Clear ();
 
             mPreviousTasks.ScrollIntoView (mPreviousTasks.Items [0]);
         }
@@ -386,6 +398,7 @@ namespace timeLog
                 iCounter.Stopwatch.AutoPauses_lock = true;
                 mAreCurrentTasksValuable.IsChecked = mAreNextTasksValuable.IsChecked;
                 mIsDisoriented.IsChecked = false;
+                mResults.Clear ();
 
                 mNextTasks.Clear ();
                 mAreNextTasksValuable.IsChecked = false;
@@ -547,16 +560,74 @@ namespace timeLog
             }
         }
 
+        private void mResults_TextChanged (object sender, TextChangedEventArgs e)
+        {
+            try
+            {
+                iShared.Session.SetString ("Results", mResults.Text);
+                iShared.Session.Save ();
+
+                iUpdateControls ();
+            }
+
+            catch (Exception xException)
+            {
+                iShared.HandleException (this, xException);
+            }
+        }
+
+        private void iAdjustElapsedTimeFontSize ()
+        {
+            Typeface xTypeface = new Typeface (FontFamily, FontStyle, FontWeight, FontStretch);
+            double xPixelsPerDip = VisualTreeHelper.GetDpi (this).PixelsPerDip;
+
+            // 1時間を過ぎても「秒」をなくさないように変更したことで、「999時間59分59秒」でのフォントサイズの調整が非現実的になった
+            // そのため、「分」や「秒」に（必要に応じて）ゼロ詰めし、経過時間の文字列の長さに基づく調整を SizeChanged だけでなく TextChanged でも行うように
+            // ゼロ詰めしたのは、「1分59秒」のあと「2分0秒」になると同時にフォントが大きくなり、「2分10秒」でまた小さくなるなどがせわしなかったため
+
+            string xText = "0000000000時間00分00秒";
+            xText = xText.Substring (xText.Length - mElapsedTime.Text.Length);
+
+            // 左右にぴったり合わさる長さにすると TextBox の左側パディング（？）で右側が少しはみ出るし、そもそも見た目が悪い
+            // いくつかの値を試したうち、0.8 では経過時間の文字列が長いときに小さくなりすぎたので 0.9 で様子見
+
+            mElapsedTime.FontSize = iShared.GetProperFontSize (mElapsedTime.ActualWidth * 0.9, mElapsedTime.ActualHeight, xText, xTypeface, xPixelsPerDip);
+        }
+
         private void mElapsedTime_SizeChanged (object sender, SizeChangedEventArgs e)
         {
             try
             {
                 if (mElapsedTime.Visibility == Visibility.Visible)
                 {
-                    Typeface xTypeface = new Typeface (FontFamily, FontStyle, FontWeight, FontStretch);
-                    double xPixelsPerDip = VisualTreeHelper.GetDpi (this).PixelsPerDip;
+                    if (mElapsedTime.Text.Length > 0)
+                        iAdjustElapsedTimeFontSize ();
 
-                    mElapsedTime.FontSize = iShared.GetProperFontSize (mElapsedTime.ActualWidth, mElapsedTime.ActualHeight, "999時間59分", xTypeface, xPixelsPerDip);
+                    // 不要だが一応
+                    iUpdateControls ();
+                }
+            }
+
+            catch (Exception xException)
+            {
+                iShared.HandleException (this, xException);
+            }
+        }
+
+        private double mElapsedTimePreviousTextLength;
+
+        private void mElapsedTime_TextChanged (object sender, TextChangedEventArgs e)
+        {
+            try
+            {
+                if (mElapsedTime.Visibility == Visibility.Visible)
+                {
+                    if (mElapsedTime.Text.Length > 0 && mElapsedTime.Text.Length != mElapsedTimePreviousTextLength)
+                    {
+                        mElapsedTimePreviousTextLength = mElapsedTime.Text.Length;
+
+                        iAdjustElapsedTimeFontSize ();
+                    }
 
                     // 不要だが一応
                     iUpdateControls ();

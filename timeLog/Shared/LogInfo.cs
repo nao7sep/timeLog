@@ -83,13 +83,37 @@ namespace timeLog
             }
         }
 
-        public LogInfo (DateTime startUtc, List <string> tasks, bool isValuable, bool isDisoriented, TimeSpan elapsedTime)
+        public readonly List <string>? Results;
+
+        private string? mResultsString = null;
+
+        public string? ResultsString
+        {
+            get
+            {
+                if (mResultsString == null && HasResults)
+                    mResultsString = string.Join (Environment.NewLine, Results);
+
+                return mResultsString;
+            }
+        }
+
+        public bool HasResults
+        {
+            get
+            {
+                return Results != null && Results.Count > 0;
+            }
+        }
+
+        public LogInfo (DateTime startUtc, List <string> tasks, bool isValuable, bool isDisoriented, TimeSpan elapsedTime, List <string>? results)
         {
             StartUtc = startUtc;
             Tasks = tasks;
             IsValuable = isValuable;
             IsDisoriented = isDisoriented;
             ElapsedTime = elapsedTime;
+            Results = results;
         }
 
         public string ToChunk ()
@@ -105,6 +129,10 @@ namespace timeLog
             xBuilder.AppendLine ("IsDisoriented:" + IsDisoriented.ToString ());
             xBuilder.AppendLine ("ElapsedTime:" + ElapsedTime.ToString ("c"));
             xBuilder.AppendLine (string.Join (Environment.NewLine, Tasks.Select (x => "//\x20" + x)));
+
+            if (HasResults)
+                xBuilder.AppendLine (string.Join (Environment.NewLine, Results!.Select (x => "=>\x20" + x)));
+
             return xBuilder.ToString ();
         }
 
@@ -152,20 +180,25 @@ namespace timeLog
 
                 // -----------------------------------------------------------------------------
 
-                List <string> xTasks = new List <string> ();
+                List <string> xTasks = new List <string> (),
+                    xResults = new List <string> ();
 
                 while ((xLine = xReader.ReadLine ()) != null)
                 {
-                    if (xLine.StartsWith ("//\x20") == false)
-                        throw new FormatException ();
+                    if (xLine.StartsWith ("//\x20"))
+                        xTasks.Add (xLine.Substring ("//\x20".Length));
 
-                    xTasks.Add (xLine.Substring ("//\x20".Length));
+                    else if (xLine.StartsWith ("=>\x20"))
+                        xResults.Add (xLine.Substring ("=>\x20".Length));
+
+                    else throw new FormatException ();
                 }
 
                 if (xTasks.Count == 0)
                     throw new FormatException ();
 
-                return new LogInfo (xStartUtc, xTasks, xIsValuable, xIsDisoriented, xElapsedTime);
+                // HasResults を通るので空の List でもよいが、一応、null に整えておく
+                return new LogInfo (xStartUtc, xTasks, xIsValuable, xIsDisoriented, xElapsedTime, xResults.Count > 0 ? xResults : null);
             }
         }
     }

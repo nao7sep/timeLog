@@ -8,9 +8,10 @@
         Title="timeLog" Width="1200" Height="600" Background="#F0F0F0" FontFamily="Meiryo" FontSize="12" Initialized="mWindow_Initialized" Loaded="mWindow_Loaded" Closing="mWindow_Closing" Closed="mWindow_Closed">
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="5*" />
             <RowDefinition Height="6*" />
-            <RowDefinition Height="7*" />
-            <RowDefinition Height="200" />
+            <RowDefinition Height="4*" />
+            <RowDefinition Height="5*" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="1*" />
@@ -35,10 +36,12 @@
             <CheckBox x:Name="mIsDisoriented" Content="グダグダ" Margin="5,0,0,0" Padding="3,0,0,0" VerticalContentAlignment="Center" Checked="mIsDisoriented_IsCheckedChanged" Unchecked="mIsDisoriented_IsCheckedChanged" />
             <Button x:Name="mEndCurrentTasks" Content="今のタスクを終了" Margin="10,0,0,0" Height="24" Padding="5,0" Click="mEndCurrentTasks_Click" />
         </StackPanel>
-        <Label Grid.Row="2" x:Name="mElapsedTimeLabel" Content="経過時間:" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Height="24" Padding="5,0" VerticalContentAlignment="Center" />
-        <TextBox Grid.Row="2" x:Name="mElapsedTime" Margin="10,29,5,39" FontSize="36" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="#F0F0F0" IsTabStop="False" IsReadOnly="True" SizeChanged="mElapsedTime_SizeChanged" />
+        <Label Grid.Row="2" x:Name="mResultsLabel" Content="結果:" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Height="24" Padding="5,0" VerticalContentAlignment="Center" />
+        <TextBox Grid.Row="2" x:Name="mResults" Margin="10,29,5,5" Padding="8" FontSize="15" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" TextChanged="mResults_TextChanged" />
+        <Label Grid.Row="3" x:Name="mElapsedTimeLabel" Content="経過時間:" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Height="24" Padding="5,0" VerticalContentAlignment="Center" />
+        <TextBox Grid.Row="3" x:Name="mElapsedTime" Margin="10,29,5,39" FontSize="36" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="#F0F0F0" IsTabStop="False" IsReadOnly="True" SizeChanged="mElapsedTime_SizeChanged" TextChanged="mElapsedTime_TextChanged" />
         <Label Grid.Column="1" Content="過去ログ:" HorizontalAlignment="Left" Margin="5,10,0,0" VerticalAlignment="Top" Height="24" Padding="5,0" VerticalContentAlignment="Center" Target="{Binding ElementName=mPreviousTasks}" />
-        <ListBox Grid.Column="1" Grid.RowSpan="3" x:Name="mPreviousTasks" Margin="5,34,5,39" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="mPreviousTasks_SelectionChanged" KeyDown="mPreviousTasks_KeyDown">
+        <ListBox Grid.Column="1" Grid.RowSpan="4" x:Name="mPreviousTasks" Margin="5,34,5,39" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="mPreviousTasks_SelectionChanged" KeyDown="mPreviousTasks_KeyDown">
             <ListBox.ItemContainerStyle>
                 <Style TargetType="ListBoxItem">
                     <Setter Property="BorderBrush" Value="#FFABADB3" />
@@ -82,12 +85,13 @@
                         <StackPanel Margin="5" Orientation="Horizontal">
                             <TextBlock Text="{Binding StartUtcFriendlyString}" VerticalAlignment="Center" />
                             <!-- 所要時間が何よりも大事なので通常の1.5倍のフォントサイズに -->
-                            <TextBlock Text="{Binding ElapsedTimeString}" Margin="10,0,5,0" FontSize="18" />
-                            <TextBlock x:Name="mIsValuableText" Text="{Binding IsValuableFriendlyString}" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="Blue" FontWeight="Bold" />
-                            <TextBlock x:Name="mIsDisorientedText" Text="{Binding IsDisorientedFriendlyString}" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="Red" FontWeight="Bold" />
+                            <TextBlock Text="{Binding ElapsedTimeString}" Margin="10,0,0,0" FontSize="18" />
+                            <TextBlock x:Name="mIsValuableText" Text="{Binding IsValuableFriendlyString}" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="Blue" FontWeight="Bold" />
+                            <TextBlock x:Name="mIsDisorientedText" Text="{Binding IsDisorientedFriendlyString}" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="Red" FontWeight="Bold" />
                         </StackPanel>
                         <!-- ListBox の方で ScrollViewer.HorizontalScrollBarVisibility を Disabled にしないとラップされない -->
                         <TextBlock Text="{Binding TasksString}" Margin="10,0,10,10" TextWrapping="Wrap" />
+                        <TextBlock x:Name="mResultsText" Text="{Binding ResultsString}" Margin="10,0,10,10" TextWrapping="Wrap" Foreground="Gray" />
                     </StackPanel>
                     <DataTemplate.Triggers>
                         <DataTrigger Binding="{Binding IsValuable}" Value="False">
@@ -96,15 +100,18 @@
                         <DataTrigger Binding="{Binding IsDisoriented}" Value="False">
                             <Setter TargetName="mIsDisorientedText" Property="Visibility" Value="Collapsed" />
                         </DataTrigger>
+                        <DataTrigger Binding="{Binding HasResults}" Value="False">
+                            <Setter TargetName="mResultsText" Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
                     </DataTemplate.Triggers>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <StackPanel Grid.Column="1" Grid.Row="2" HorizontalAlignment="Right" Margin="0,0,5,10" VerticalAlignment="Bottom" Orientation="Horizontal">
+        <StackPanel Grid.Column="1" Grid.Row="3" HorizontalAlignment="Right" Margin="0,0,5,10" VerticalAlignment="Bottom" Orientation="Horizontal">
             <Button x:Name="mDeleteSelectedLog" Content="選択中のログを削除" Height="24" Padding="5,0" Click="mDeleteSelectedLog_Click" />
             <Button x:Name="mClose" Content="プログラムを終了" Margin="5,0,0,0" Height="24" Padding="5,0" Click="mClose_Click" />
         </StackPanel>
         <Label Grid.Column="2" Content="統計情報:" HorizontalAlignment="Left" Margin="5,10,0,0" VerticalAlignment="Top" Height="24" Padding="5,0" VerticalContentAlignment="Center" Target="{Binding ElementName=mStatistics}" />
-        <TextBox Grid.Column="2" Grid.RowSpan="3" x:Name="mStatistics" Margin="5,34,10,39" Padding="8" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Background="#F0F0F0" IsTabStop="False" IsReadOnly="True" />
+        <TextBox Grid.Column="2" Grid.RowSpan="4" x:Name="mStatistics" Margin="5,34,10,39" Padding="8" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Background="#F0F0F0" IsTabStop="False" IsReadOnly="True" />
     </Grid>
 </Window>

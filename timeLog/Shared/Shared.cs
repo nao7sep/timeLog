@@ -194,17 +194,14 @@ namespace timeLog
         {
             long xSeconds = (long) value;
 
-            // 最初は「時」と「分」だけだったが、2～3分、早ければ1分未満で終わるタスクもある
-            // そのとき、59秒が「0分」となったり、1分59分が「1分」となったりするのでは誤差が大きい
+            // 「秒」がなくなると計測中かどうか分からなくなるので、常に表示されるように変更
+            // また、「分」や「秒」の桁数によりフォントサイズが何度も変更されないようにゼロ詰め
 
             if (xSeconds >= 3600)
-                return FormattableString.Invariant ($"{xSeconds / 3600}時間{xSeconds % 3600 / 60}分");
-
-            else if (xSeconds >= 600)
-                return FormattableString.Invariant ($"{xSeconds / 60}分");
+                return FormattableString.Invariant ($"{xSeconds / 3600}時間{xSeconds % 3600 / 60 :D2}分{xSeconds % 60 :D2}秒");
 
             else if (xSeconds >= 60)
-                return FormattableString.Invariant ($"{xSeconds / 60}分{xSeconds % 60}秒");
+                return FormattableString.Invariant ($"{xSeconds / 60}分{xSeconds % 60 :D2}秒");
 
             else return FormattableString.Invariant ($"{xSeconds}秒");
         }
