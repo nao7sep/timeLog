@@ -58,6 +58,9 @@ namespace timeLog
                 if (string.IsNullOrEmpty (xFontFamily) == false)
                     mWindow.FontFamily = new FontFamily (xFontFamily);
 
+                if (bool.TryParse (ConfigurationManager.AppSettings ["IsImeEnabled"], out bool xResultAlt2))
+                    InputMethod.Current.ImeState = InputMethodState.On;
+
                 // 不要
                 // iUpdateControls ();
 
@@ -105,9 +108,16 @@ namespace timeLog
                 mIsDisoriented.IsEnabled = true;
 
                 if (xAreCurrentTasksOK)
+                {
+                    mStartWithoutTasks.IsEnabled = true;
                     mEndCurrentTasks.IsEnabled = true;
+                }
 
-                else mEndCurrentTasks.IsEnabled = false;
+                else
+                {
+                    mStartWithoutTasks.IsEnabled = false;
+                    mEndCurrentTasks.IsEnabled = false;
+                }
 
                 mResultsLabel.Visibility = Visibility.Visible;
                 mResults.Visibility = Visibility.Visible;
@@ -123,6 +133,7 @@ namespace timeLog
 
                 else mStartNextTasks.IsEnabled = false;
 
+                mStartWithoutTasks.IsEnabled = true;
                 mCurrentTasks.IsEnabled = false;
                 mAutoPauses.IsEnabled = false;
                 mPauseOrResumeCounting.IsEnabled = false;
@@ -402,6 +413,37 @@ namespace timeLog
 
                 mNextTasks.Clear ();
                 mAreNextTasksValuable.IsChecked = false;
+
+                iUpdateControls ();
+            }
+
+            catch (Exception xException)
+            {
+                iShared.HandleException (this, xException);
+            }
+        }
+
+        private void mStartWithoutTasks_Click (object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (iCounter.AreTasksStarted)
+                {
+                    iAddLog ();
+                    iUpdateStatistics ();
+                }
+
+                iCounter.AreTasksStarted = true;
+                iCounter.Stopwatch.Start_lock ();
+
+                // 以下、iAddLog と同じ
+
+                mCurrentTasks.Clear ();
+                mAutoPauses.IsChecked = true;
+                iCounter.Stopwatch.AutoPauses_lock = true;
+                mAreCurrentTasksValuable.IsChecked = false;
+                mIsDisoriented.IsChecked = false;
+                mResults.Clear ();
 
                 iUpdateControls ();
             }

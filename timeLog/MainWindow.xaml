@@ -24,6 +24,7 @@
             <CheckBox x:Name="mAreNextTasksValuable" Content="価値あり" Padding="3,0,0,0" VerticalContentAlignment="Center" Checked="mAreNextTasksValuable_IsCheckedChanged" Unchecked="mAreNextTasksValuable_IsCheckedChanged" />
             <!-- 種類の異なるコントロールなのでマージンを大きめに -->
             <Button x:Name="mStartNextTasks" Content="次のタスクを開始" Margin="10,0,0,0" Height="24" Padding="5,0" Click="mStartNextTasks_Click" />
+            <Button x:Name="mStartWithoutTasks" Content="タスクなしで開始" Margin="5,0,0,0" Height="24" Padding="5,0" Click="mStartWithoutTasks_Click" />
         </StackPanel>
         <Label Grid.Row="1"  Content="今のタスク:" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Height="24" Padding="5,0" VerticalContentAlignment="Center" Target="{Binding ElementName=mCurrentTasks}"/>
         <TextBox Grid.Row="1" x:Name="mCurrentTasks" Margin="10,29,5,63" Padding="8" FontSize="15" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" TextChanged="mCurrentTasks_TextChanged" />
@@ -82,7 +83,7 @@
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel>
-                        <StackPanel Margin="5" Orientation="Horizontal">
+                        <StackPanel Margin="10" Orientation="Horizontal">
                             <TextBlock Text="{Binding StartUtcFriendlyString}" VerticalAlignment="Center" />
                             <!-- 所要時間が何よりも大事なので通常の1.5倍のフォントサイズに -->
                             <TextBlock Text="{Binding ElapsedTimeString}" Margin="10,0,0,0" FontSize="18" />
@@ -91,7 +92,9 @@
                         </StackPanel>
                         <!-- ListBox の方で ScrollViewer.HorizontalScrollBarVisibility を Disabled にしないとラップされない -->
                         <TextBlock Text="{Binding TasksString}" Margin="10,0,10,10" TextWrapping="Wrap" />
-                        <TextBlock x:Name="mResultsText" Text="{Binding ResultsString}" Margin="10,0,10,10" TextWrapping="Wrap" Foreground="Gray" />
+                        <Border x:Name="mResultsBorder" BorderBrush="#FFABADB3" BorderThickness="0,1,0,0">
+                            <TextBlock x:Name="mResultsText" Text="{Binding ResultsString}" Margin="10" TextWrapping="Wrap" Foreground="Green" />
+                        </Border>
                     </StackPanel>
                     <DataTemplate.Triggers>
                         <DataTrigger Binding="{Binding IsValuable}" Value="False">
@@ -101,6 +104,7 @@
                             <Setter TargetName="mIsDisorientedText" Property="Visibility" Value="Collapsed" />
                         </DataTrigger>
                         <DataTrigger Binding="{Binding HasResults}" Value="False">
+                            <Setter TargetName="mResultsBorder" Property="Visibility" Value="Collapsed" />
                             <Setter TargetName="mResultsText" Property="Visibility" Value="Collapsed" />
                         </DataTrigger>
                     </DataTemplate.Triggers>
