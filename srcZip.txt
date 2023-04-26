@@ -22,3 +22,5 @@ Archived
 timeLog/bin
 timeLog/obj
 .gitignore
+README.md
+taskKiller.txt
