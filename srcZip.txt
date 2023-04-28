@@ -18,9 +18,5 @@ Compiled/timeLogs.txt
 [Exclude]
 .git
 .vs
-Archived
-timeLog/bin
-timeLog/obj
-.gitignore
-README.md
-taskKiller.txt
+bin
+obj
