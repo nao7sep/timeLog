@@ -2,7 +2,7 @@
 Compiled
 
 [Copy]
-timeLog\bin\Release\net6.0-windows > Compiled
+timeLog/bin/Release/net6.0-windows > Compiled
 
 [Delete]
 Compiled/runtimes/linux-arm
@@ -18,5 +18,5 @@ Compiled/timeLogs.txt
 [Exclude]
 .git
 .vs
-bin
-obj
+timeLog/bin
+timeLog/obj
