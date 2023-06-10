@@ -22,7 +22,7 @@ namespace timeLog
                 if (iCounter.AreTasksStarted)
                 {
                     iCounter.PreviousStartUtc = iCounter.GetStartUtc ();
-                    iCounter.PreviousElapsedTime = iCounter.Stopwatch.TotalElapsedTime_lock;
+                    iCounter.PreviousElapsedTime = iCounter.Stopwatch.TotalElapsedTime;
                 }
 
                 else

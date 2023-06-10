@@ -171,17 +171,21 @@ namespace timeLog
         {
             mElapsedTimeUpdatingTask = Task.Run (() =>
             {
+                // 3分ごとの通知
+                // 初回はプログラムの起動から5秒後に
+                DateTime xLastNotificationUtc = DateTime.UtcNow.AddSeconds (-175);
+
                 while (mContinuesUpdatingElapsedTime)
                 {
                     // ここで lock (iCounter.Stopwatch.Locker) を行うと、
-                    //     mWindow_Closed で iCounter.Stopwatch.TotalElapsedTime_lock がデッドロックになり、
+                    //     mWindow_Closed で iCounter.Stopwatch.TotalElapsedTime がデッドロックになり、
                     //     ウィンドウが閉じてからもスレッドが残り、プロセスが終わらない
-                    // デバッグモードにより mWindow_Closed で止めて iCounter.Stopwatch.TotalElapsedTime_lock を見ると、
+                    // デバッグモードにより mWindow_Closed で止めて iCounter.Stopwatch.TotalElapsedTime を見ると、
                     //     デッドロック状態なのでタイムアウトになり、その旨がエラーメッセージとして表示される
 
                     // 警戒するべきは、「if 文の時点ではそうだったのに、次の瞬間にはそうでなくなっていた」のよくあるケース
 
-                    // iCounter.Stopwatch.TotalElapsedTime_lock は、iCounter.Stopwatch が Dispose されてからも落ちることはない
+                    // iCounter.Stopwatch.TotalElapsedTime は、iCounter.Stopwatch が Dispose されてからも落ちることはない
                     // しかし、その仕様は今後変更される可能性があるため、この while ループが終わってからの Dispose になるように mWindow_Closed で待つ
 
                     // ウィンドウが完全に破棄されてからの mWindow.Dispatcher.Invoke は、落ちる可能性がある
@@ -196,7 +200,7 @@ namespace timeLog
 
                         if (iCounter.AreTasksStarted)
                         {
-                            TimeSpan xElapsedTime = iCounter.Stopwatch.TotalElapsedTime_lock;
+                            TimeSpan xElapsedTime = iCounter.Stopwatch.TotalElapsedTime;
 
                             if (iShared.IsWindowClosed == false)
                             {
@@ -220,6 +224,70 @@ namespace timeLog
                                     mWindow.Title = "timeLog";
                                     mElapsedTime.Clear ();
                                 });
+                            }
+                        }
+
+                        // プログラムの起動時からまわり続けるスレッドがあるので、通知画面もそこから表示
+
+                        DateTime xUtcNow = DateTime.UtcNow;
+
+                        if ((xUtcNow - xLastNotificationUtc).TotalSeconds >= 180)
+                        {
+                            xLastNotificationUtc = xUtcNow;
+
+                            if (iShared.IsWindowClosed == false)
+                            {
+                                if (iCounter.AreTasksStarted == false)
+                                {
+                                    iShared.NotificationContent.Background = iShared.NotStartedNotificationBackgroundColor;
+                                    iShared.NotificationContent.Foreground = iShared.NotStartedNotificationForegroundColor;
+
+                                    // 開始されていないのは「計測」なのか「タスク」なのか
+                                    // 最初は「計測」を考えたが、「はよ働け！」を言いたいので「タスク」に
+                                    iShared.NotificationContent.Message = "タスクが開始されていません。";
+                                }
+
+                                else if (iCounter.IsPausedManually)
+                                {
+                                    iShared.NotificationContent.Background = iShared.PausedNotificationBackgroundColor;
+                                    iShared.NotificationContent.Foreground = iShared.PausedNotificationForegroundColor;
+
+                                    // 厳密には「計測」が中断されているが、上と同じ理由で「タスク」に
+                                    iShared.NotificationContent.Message = "タスクが中断されています。";
+                                }
+
+                                else
+                                {
+                                    // こういうことができると、今まで知らなかった
+                                    // Invoke は同期処理なので、すぐに結果が得られる
+
+                                    // c# - How do I wait for the result from Dispatcher Invoke? - Stack Overflow
+                                    // https://stackoverflow.com/questions/39438441/how-do-i-wait-for-the-result-from-dispatcher-invoke
+
+                                    // Dispatcher.Invoke Method (System.Windows.Threading) | Microsoft Learn
+                                    // https://learn.microsoft.com/en-us/dotnet/api/system.windows.threading.dispatcher.invoke
+
+                                    string xText = mWindow.Dispatcher.Invoke (() => mCurrentTasks.Text);
+                                    var xParagraphs = nString.EnumerateParagraphs (xText);
+                                    int xParagraphCount = xParagraphs.Count ();
+
+                                    iShared.NotificationContent.Background = iShared.CountingNotificationBackgroundColor;
+                                    iShared.NotificationContent.Foreground = iShared.CountingNotificationForegroundColor;
+
+                                    // 入力があり、段落が一つだけなら、それが済んでいるかまだかを考慮せず、それを表示
+                                    // 段落が複数なら、自分の使い方では空行で区切って二つ目以降の段落にまだのことを書くため、まず二つ目の段落のみ表示
+                                    // しなければならないことが多いときにまだのことがゴソッと表示されるとうるさい
+
+                                    if (xParagraphCount == 0)
+                                        iShared.NotificationContent.Message = "今のタスクを入力してください。";
+
+                                    else if (xParagraphCount == 1)
+                                        iShared.NotificationContent.Message = string.Join (Environment.NewLine, xParagraphs.First ());
+
+                                    else iShared.NotificationContent.Message = string.Join (Environment.NewLine, xParagraphs.ElementAt (1));
+                                }
+
+                                iShared.NotificationManager.Show (iShared.NotificationContent);
                             }
                         }
                     }
@@ -262,7 +330,7 @@ namespace timeLog
                     if (bool.TryParse (iShared.Session.GetStringOrDefault ("AutoPauses", string.Empty), out bool xResultAlt))
                     {
                         mAutoPauses.IsChecked = xResultAlt;
-                        iCounter.Stopwatch.AutoPauses_lock = xResultAlt;
+                        iCounter.Stopwatch.AutoPauses = xResultAlt;
                     }
 
                     else
@@ -270,13 +338,13 @@ namespace timeLog
                         // 自動中断はデフォルトでオン
 
                         mAutoPauses.IsChecked = true;
-                        iCounter.Stopwatch.AutoPauses_lock = true; // デフォルトで true だが明示的に
+                        iCounter.Stopwatch.AutoPauses = true; // デフォルトで true だが明示的に
                     }
 
                     // 前回のデータが残っていれば、「中断」ボタンによりマニュアルで中断されてからのプログラムの終了とみなされる
                     iCounter.IsPausedManually = true;
 
-                    iCounter.Stopwatch.PreviousEntries.Add (new nStopwatchEntry <nEmptyClass, nEmptyStruct>
+                    iCounter.Stopwatch.PreviousEntries.Add (new nStopwatchEntry <object>
                     {
                         StartUtc = iCounter.PreviousStartUtc.Value,
                         ElapsedTime = iCounter.PreviousElapsedTime ?? TimeSpan.Zero // 起動できないと復旧できない
@@ -296,7 +364,7 @@ namespace timeLog
                     // 前回のデータがない場合、デフォルトの値がコントロールの初期状態と異なるものだけ変更
 
                     mAutoPauses.IsChecked = true;
-                    iCounter.Stopwatch.AutoPauses_lock = true;
+                    iCounter.Stopwatch.AutoPauses = true;
                 }
 
                 // 「～の一部に」とか「読み込みにおいてエラーが～」とかも考えたが、
@@ -363,15 +431,15 @@ namespace timeLog
 
         private void iAddLog ()
         {
-            // 経過時間を表示するスレッドの iCounter.Stopwatch.TotalElapsedTime_lock と
-            //     こちらの iCounter.Stopwatch.Reset_lock のことを考えて lock を検討したが、やめておく
+            // 経過時間を表示するスレッドの iCounter.Stopwatch.TotalElapsedTime と
+            //     こちらの iCounter.Stopwatch.Reset のことを考えて lock を検討したが、やめておく
             // 計測終了時に100ミリ秒だけ経過時間が（空でなく）0になるかもしれないが、
             //     絶妙のタイミングを要することで発生確率が極めて低いし、ユーザーへの影響もない
 
             List <string> xResults = Shared.ParseTasksString (mResults.Text);
 
             iPreviousLogs.AddLog (new LogInfo (iCounter.GetStartUtc (), Shared.ParseTasksString (mCurrentTasks.Text),
-                mAreCurrentTasksValuable.IsChecked!.Value, mIsDisoriented.IsChecked!.Value, iCounter.Stopwatch.TotalElapsedTime_lock,
+                mAreCurrentTasksValuable.IsChecked!.Value, mIsDisoriented.IsChecked!.Value, iCounter.Stopwatch.TotalElapsedTime,
                 xResults.Count > 0 ? xResults : null));
 
             iCounter.PreviousStartUtc = null;
@@ -379,11 +447,11 @@ namespace timeLog
 
             iCounter.AreTasksStarted = false;
             iCounter.IsPausedManually = false;
-            iCounter.Stopwatch.Reset_lock ();
+            iCounter.Stopwatch.Reset ();
 
             mCurrentTasks.Clear ();
             mAutoPauses.IsChecked = true;
-            iCounter.Stopwatch.AutoPauses_lock = true;
+            iCounter.Stopwatch.AutoPauses = true;
             mAreCurrentTasksValuable.IsChecked = false;
             mIsDisoriented.IsChecked = false;
             mResults.Clear ();
@@ -402,11 +470,11 @@ namespace timeLog
                 }
 
                 iCounter.AreTasksStarted = true;
-                iCounter.Stopwatch.Start_lock ();
+                iCounter.Stopwatch.Start ();
 
                 mCurrentTasks.Text = string.Join (Environment.NewLine, Shared.ParseTasksString (mNextTasks.Text));
                 mAutoPauses.IsChecked = true;
-                iCounter.Stopwatch.AutoPauses_lock = true;
+                iCounter.Stopwatch.AutoPauses = true;
                 mAreCurrentTasksValuable.IsChecked = mAreNextTasksValuable.IsChecked;
                 mIsDisoriented.IsChecked = false;
                 mResults.Clear ();
@@ -415,6 +483,8 @@ namespace timeLog
                 mAreNextTasksValuable.IsChecked = false;
 
                 iUpdateControls ();
+
+                mCurrentTasks.Focus ();
             }
 
             catch (Exception xException)
@@ -434,18 +504,20 @@ namespace timeLog
                 }
 
                 iCounter.AreTasksStarted = true;
-                iCounter.Stopwatch.Start_lock ();
+                iCounter.Stopwatch.Start ();
 
                 // 以下、iAddLog と同じ
 
                 mCurrentTasks.Clear ();
                 mAutoPauses.IsChecked = true;
-                iCounter.Stopwatch.AutoPauses_lock = true;
+                iCounter.Stopwatch.AutoPauses = true;
                 mAreCurrentTasksValuable.IsChecked = false;
                 mIsDisoriented.IsChecked = false;
                 mResults.Clear ();
 
                 iUpdateControls ();
+
+                mCurrentTasks.Focus ();
             }
 
             catch (Exception xException)
@@ -474,7 +546,7 @@ namespace timeLog
         {
             try
             {
-                iCounter.Stopwatch.AutoPauses_lock = mAutoPauses.IsChecked!.Value;
+                iCounter.Stopwatch.AutoPauses = mAutoPauses.IsChecked!.Value;
 
                 iShared.Session.SetString ("AutoPauses", mAutoPauses.IsChecked!.Value.ToString ());
                 iShared.Session.Save ();
@@ -495,14 +567,14 @@ namespace timeLog
                 if (iCounter.IsPausedManually == false)
                 {
                     iCounter.IsPausedManually = true;
-                    iCounter.Stopwatch.Pause_lock ();
+                    iCounter.Stopwatch.Pause ();
                     mPauseOrResumeCounting.Content = "再開";
                 }
 
                 else
                 {
                     iCounter.IsPausedManually = false;
-                    iCounter.Stopwatch.Resume_lock ();
+                    iCounter.Stopwatch.Resume ();
                     mPauseOrResumeCounting.Content = "中断";
                 }
 
@@ -555,8 +627,8 @@ namespace timeLog
                 //     「System.InvalidOperationException: このオブジェクトは別のスレッドに所有されているため、呼び出しスレッドはこのオブジェクトにアクセスできません」になる
                 // キーボードなどのフックが別スレッドによる処理であることを忘れていた
 
-                if (iCounter.AreTasksStarted && iCounter.Stopwatch.AutoPauses_lock && iCounter.IsPausedManually == false)
-                    iCounter.Stopwatch.Knock_lock (true);
+                if (iCounter.AreTasksStarted && iCounter.Stopwatch.AutoPauses && iCounter.IsPausedManually == false)
+                    iCounter.Stopwatch.Knock (true);
 
                 // iUpdateControls ();
             }
@@ -574,8 +646,8 @@ namespace timeLog
         {
             try
             {
-                if (iCounter.AreTasksStarted && iCounter.Stopwatch.AutoPauses_lock && iCounter.IsPausedManually == false)
-                    iCounter.Stopwatch.Knock_lock (true);
+                if (iCounter.AreTasksStarted && iCounter.Stopwatch.AutoPauses && iCounter.IsPausedManually == false)
+                    iCounter.Stopwatch.Knock (true);
 
                 // iUpdateControls ();
             }
@@ -594,6 +666,8 @@ namespace timeLog
                 iUpdateStatistics ();
 
                 iUpdateControls ();
+
+                mNextTasks.Focus ();
             }
 
             catch (Exception xException)

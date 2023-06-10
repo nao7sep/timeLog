@@ -23,13 +23,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="SharpHook" Version="4.0.0" />
+        <PackageReference Include="Notification.Wpf" Version="7.0.0" />
+        <PackageReference Include="SharpHook" Version="4.2.0" />
         <PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" />
     </ItemGroup>
 
     <ItemGroup>
       <Reference Include="Nekote">
-        <HintPath>..\..\..\Nekote\Nekote\bin\Release\net6.0\Nekote.dll</HintPath>
+        <HintPath>..\..\Nekote\Nekote\bin\Release\net6.0\Nekote.dll</HintPath>
       </Reference>
     </ItemGroup>
 

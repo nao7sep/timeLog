@@ -238,12 +238,12 @@ namespace timeLog
 
         public static string IsValuableToFriendlyString (bool value)
         {
-            return value ? "価値あり" : "価値なし";
+            return value ? "価値をつくった" : "価値をつくらなかった";
         }
 
         public static string IsDisorientedToFriendlyString (bool value)
         {
-            return value ? "グダグダ" : "集中";
+            return value ? "集中できなかった" : "集中できた";
         }
 
         public readonly static string DateFriendlyFormatString = "yyyy'/'M'/'d";
