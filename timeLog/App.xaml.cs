@@ -19,21 +19,7 @@ namespace timeLog
         {
             if (mIsPreviousInfoSaved == false)
             {
-                if (iCounter.AreTasksStarted)
-                {
-                    iCounter.PreviousStartUtc = iCounter.GetStartUtc ();
-                    iCounter.PreviousElapsedTime = iCounter.Stopwatch.TotalElapsedTime;
-                }
-
-                else
-                {
-                    iCounter.PreviousStartUtc = null;
-                    iCounter.PreviousElapsedTime = null;
-                }
-
-                iCounter.ApplyPreviousInfo ();
-                iShared.Session.Save ();
-
+                iShared.SavePreviousInfo ();
                 mIsPreviousInfoSaved = true;
             }
         }

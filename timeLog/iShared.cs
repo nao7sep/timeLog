@@ -89,5 +89,26 @@ namespace timeLog
 
             return xFontSize;
         }
+
+        // 以前はプログラムの終了時のみ保存されたデータ
+        // いつプログラムがクラッシュしてもいいように、定期的な保存に変更
+
+        public static void SavePreviousInfo ()
+        {
+            if (iCounter.AreTasksStarted)
+            {
+                iCounter.PreviousStartUtc = iCounter.GetStartUtc ();
+                iCounter.PreviousElapsedTime = iCounter.Stopwatch.TotalElapsedTime;
+            }
+
+            else
+            {
+                iCounter.PreviousStartUtc = null;
+                iCounter.PreviousElapsedTime = null;
+            }
+
+            iCounter.ApplyPreviousInfo ();
+            Session.Save ();
+        }
     }
 }

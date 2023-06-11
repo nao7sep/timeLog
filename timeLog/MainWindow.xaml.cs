@@ -164,7 +164,7 @@ namespace timeLog
 
         private bool mContinuesUpdatingElapsedTime;
 
-        // 不要だが一応
+        // 不要だが一応 → 早すぎるフックの回避にハック的に
         private Task? mElapsedTimeUpdatingTask;
 
         private void iStartUpdatingElapsedTime ()
@@ -234,6 +234,13 @@ namespace timeLog
                         if ((xUtcNow - xLastNotificationUtc).TotalSeconds >= 180)
                         {
                             xLastNotificationUtc = xUtcNow;
+
+                            // 通知画面の表示の前に、これまたついでに3分ごとのセッション情報の保存も行う
+                            // 内容が変更されたか見ないため1時間あたり必ず20回の書き込みになるが、SSD へのダメージは微々たるもの
+                            // Windows 全体のクラッシュは今も数ヶ月に1回はある
+                            // timeLog は24時間走らせるプログラムになりつつあるため、記録が歯抜けになるのをできるだけ防ぐ
+
+                            iShared.SavePreviousInfo ();
 
                             if (iShared.IsWindowClosed == false)
                             {
@@ -402,7 +409,8 @@ namespace timeLog
             try
             {
                 iShared.Session.SetString ("NextTasks", mNextTasks.Text);
-                iShared.Session.Save ();
+                // iShared.Session.Save ();
+                iShared.SavePreviousInfo ();
 
                 iUpdateControls ();
             }
@@ -418,7 +426,8 @@ namespace timeLog
             try
             {
                 iShared.Session.SetString ("AreNextTasksValuable", mAreNextTasksValuable.IsChecked!.Value.ToString ());
-                iShared.Session.Save ();
+                // iShared.Session.Save ();
+                iShared.SavePreviousInfo ();
 
                 iUpdateControls ();
             }
@@ -438,9 +447,28 @@ namespace timeLog
 
             List <string> xResults = Shared.ParseTasksString (mResults.Text);
 
-            iPreviousLogs.AddLog (new LogInfo (iCounter.GetStartUtc (), Shared.ParseTasksString (mCurrentTasks.Text),
+            LogInfo xLog = new LogInfo (iCounter.GetStartUtc (), Shared.ParseTasksString (mCurrentTasks.Text),
                 mAreCurrentTasksValuable.IsChecked!.Value, mIsDisoriented.IsChecked!.Value, iCounter.Stopwatch.TotalElapsedTime,
-                xResults.Count > 0 ? xResults : null));
+                xResults.Count > 0 ? xResults : null);
+
+            // 過去ログのところに計測データが入ったあと、プログラムのクラッシュやオンラインストレージ系のアプリの挙動などにより
+            //     「プログラムの再起動時に timeLog.Session.txt の内容が古く、それが読み込まれる」ということが少なくとも以前の実装ではあった
+            // その状態で「今のタスクを終了」をクリックすると、SortedList における DateTime 型のキーの衝突により例外が発生する
+
+            // そもそもそういう状態にならないのが理想だが、timeLog.Session.txt を意図的に戻すなどにより再現できることなので、対応しないわけにはいかない
+            // キーの偶然の衝突は考えにくいので、新しいデータの方が、さらに計測しての経過時間の増加の可能性があることにより、古い方を消してから追加する
+
+            // 実装としては、キーの衝突が SortedList で起こっているので、そこでキーの存在を見て、古いデータもそこから参照として抜く
+            // DeleteLog の内部では、ファイルからは、その参照のデータが文字列化されたものと完全に一致する部分が消され、
+            //     SortedList からは StartUtc をキーとする削除が行われ、ObservableCollection からは参照による削除が行われる
+
+            if (iPreviousLogs.LogFile.Logs.ContainsKey (xLog.StartUtc))
+            {
+                LogInfo xOldLog = iPreviousLogs.LogFile.Logs [xLog.StartUtc];
+                iPreviousLogs.DeleteLog (xOldLog);
+            }
+
+            iPreviousLogs.AddLog (xLog);
 
             iCounter.PreviousStartUtc = null;
             iCounter.PreviousElapsedTime = null;
@@ -482,6 +510,8 @@ namespace timeLog
                 mNextTasks.Clear ();
                 mAreNextTasksValuable.IsChecked = false;
 
+                iShared.SavePreviousInfo ();
+
                 iUpdateControls ();
 
                 mCurrentTasks.Focus ();
@@ -515,6 +545,8 @@ namespace timeLog
                 mIsDisoriented.IsChecked = false;
                 mResults.Clear ();
 
+                iShared.SavePreviousInfo ();
+
                 iUpdateControls ();
 
                 mCurrentTasks.Focus ();
@@ -531,7 +563,8 @@ namespace timeLog
             try
             {
                 iShared.Session.SetString ("CurrentTasks", mCurrentTasks.Text);
-                iShared.Session.Save ();
+                // iShared.Session.Save ();
+                iShared.SavePreviousInfo ();
 
                 iUpdateControls ();
             }
@@ -549,7 +582,8 @@ namespace timeLog
                 iCounter.Stopwatch.AutoPauses = mAutoPauses.IsChecked!.Value;
 
                 iShared.Session.SetString ("AutoPauses", mAutoPauses.IsChecked!.Value.ToString ());
-                iShared.Session.Save ();
+                // iShared.Session.Save ();
+                iShared.SavePreviousInfo ();
 
                 iUpdateControls ();
             }
@@ -578,6 +612,8 @@ namespace timeLog
                     mPauseOrResumeCounting.Content = "中断";
                 }
 
+                iShared.SavePreviousInfo ();
+
                 iUpdateControls ();
             }
 
@@ -592,7 +628,8 @@ namespace timeLog
             try
             {
                 iShared.Session.SetString ("AreCurrentTasksValuable", mAreCurrentTasksValuable.IsChecked!.Value.ToString ());
-                iShared.Session.Save ();
+                // iShared.Session.Save ();
+                iShared.SavePreviousInfo ();
 
                 iUpdateControls ();
             }
@@ -608,7 +645,8 @@ namespace timeLog
             try
             {
                 iShared.Session.SetString ("IsDisoriented", mIsDisoriented.IsChecked!.Value.ToString ());
-                iShared.Session.Save ();
+                // iShared.Session.Save ();
+                iShared.SavePreviousInfo ();
 
                 iUpdateControls ();
             }
@@ -623,6 +661,12 @@ namespace timeLog
         {
             try
             {
+                // まだ mWindow_Loaded の途中で、IsPausedManually などが設定される前に Knock が呼ばれると、計測を始めずのノックになって Nekote が例外を投げる
+                // mWindow_Loaded の最後で mElapsedTimeUpdatingTask にインスタンスが設定されるため、それにより、初期化後のフックしか対応されないように
+
+                if (mElapsedTimeUpdatingTask == null)
+                    return;
+
                 // 元データ感のより強い mAutoPauses.IsChecked!.Value を見ると、
                 //     「System.InvalidOperationException: このオブジェクトは別のスレッドに所有されているため、呼び出しスレッドはこのオブジェクトにアクセスできません」になる
                 // キーボードなどのフックが別スレッドによる処理であることを忘れていた
@@ -646,6 +690,9 @@ namespace timeLog
         {
             try
             {
+                if (mElapsedTimeUpdatingTask == null)
+                    return;
+
                 if (iCounter.AreTasksStarted && iCounter.Stopwatch.AutoPauses && iCounter.IsPausedManually == false)
                     iCounter.Stopwatch.Knock (true);
 
@@ -665,6 +712,8 @@ namespace timeLog
                 iAddLog ();
                 iUpdateStatistics ();
 
+                iShared.SavePreviousInfo ();
+
                 iUpdateControls ();
 
                 mNextTasks.Focus ();
@@ -681,7 +730,8 @@ namespace timeLog
             try
             {
                 iShared.Session.SetString ("Results", mResults.Text);
-                iShared.Session.Save ();
+                // iShared.Session.Save ();
+                iShared.SavePreviousInfo ();
 
                 iUpdateControls ();
             }
@@ -910,6 +960,9 @@ namespace timeLog
                 iCounter.Stopwatch.Dispose ();
 
                 iShared.IsWindowClosed = true;
+
+                // ここではセッション情報の保存は不要
+                // 直後に App クラスの方で行われる
             }
 
             catch (Exception xException)
