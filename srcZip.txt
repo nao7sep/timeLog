@@ -10,6 +10,9 @@ Compiled/runtimes/linux-arm64
 Compiled/runtimes/linux-x64
 Compiled/runtimes/osx-arm64
 Compiled/runtimes/osx-x64
+Compiled/runtimes/win-arm
+Compiled/runtimes/win-arm64
+Compiled/runtimes/win-x86
 Compiled/timeLog.Errors.txt
 Compiled/timeLog.Session.txt
 Compiled/timeLog.Statistics.txt

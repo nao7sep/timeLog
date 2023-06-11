@@ -92,7 +92,7 @@ namespace timeLog
             get
             {
                 if (mResultsString == null && HasResults)
-                    mResultsString = string.Join (Environment.NewLine, Results);
+                    mResultsString = string.Join (Environment.NewLine, Results!);
 
                 return mResultsString;
             }
@@ -149,7 +149,7 @@ namespace timeLog
                 if (xLine!.StartsWith ("StartUtc:", StringComparison.OrdinalIgnoreCase) == false)
                     throw new FormatException ();
 
-                DateTime xStartUtc = DateTime.ParseExact (xLine.Substring ("StartUtc:".Length), "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+                DateTime xStartUtc = DateTime.ParseExact (xLine.AsSpan ("StartUtc:".Length), "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
 
                 // -----------------------------------------------------------------------------
 
@@ -158,7 +158,7 @@ namespace timeLog
                 if (xLine!.StartsWith ("IsValuable:", StringComparison.OrdinalIgnoreCase) == false)
                     throw new FormatException ();
 
-                bool xIsValuable = bool.Parse (xLine.Substring ("IsValuable:".Length));
+                bool xIsValuable = bool.Parse (xLine.AsSpan ("IsValuable:".Length));
 
                 // -----------------------------------------------------------------------------
 
@@ -167,7 +167,7 @@ namespace timeLog
                 if (xLine!.StartsWith ("IsDisoriented:", StringComparison.OrdinalIgnoreCase) == false)
                     throw new FormatException ();
 
-                bool xIsDisoriented = bool.Parse (xLine.Substring ("IsDisoriented:".Length));
+                bool xIsDisoriented = bool.Parse (xLine.AsSpan ("IsDisoriented:".Length));
 
                 // -----------------------------------------------------------------------------
 
@@ -176,7 +176,7 @@ namespace timeLog
                 if (xLine!.StartsWith ("ElapsedTime:", StringComparison.OrdinalIgnoreCase) == false)
                     throw new FormatException ();
 
-                TimeSpan xElapsedTime = TimeSpan.ParseExact (xLine.Substring ("ElapsedTime:".Length), "c", CultureInfo.InvariantCulture);
+                TimeSpan xElapsedTime = TimeSpan.ParseExact (xLine.AsSpan ("ElapsedTime:".Length), "c", CultureInfo.InvariantCulture);
 
                 // -----------------------------------------------------------------------------
 

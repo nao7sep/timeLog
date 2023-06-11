@@ -35,7 +35,10 @@ namespace timeLog
 
         // mGlobalHook の Dispose により終了する
         // 今のところ不要だが、一応
+
+#pragma warning disable IDE0052
         private Task? mHookingTask = null;
+#pragma warning restore IDE0052
 
         private void mWindow_Initialized (object sender, EventArgs e)
         {
