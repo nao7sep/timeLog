@@ -108,7 +108,7 @@ namespace timeLog
                 else mPauseOrResumeCounting.Content = "再開";
 
                 mAreCurrentTasksValuable.IsEnabled = true;
-                mIsDisoriented.IsEnabled = true;
+                mIsFocused.IsEnabled = true;
 
                 if (xAreCurrentTasksOK)
                 {
@@ -142,7 +142,7 @@ namespace timeLog
                 mPauseOrResumeCounting.IsEnabled = false;
                 mPauseOrResumeCounting.Content = "中断";
                 mAreCurrentTasksValuable.IsEnabled = false;
-                mIsDisoriented.IsEnabled = false;
+                mIsFocused.IsEnabled = false;
                 mEndCurrentTasks.IsEnabled = false;
 
                 mResultsLabel.Visibility = Visibility.Collapsed;
@@ -364,7 +364,7 @@ namespace timeLog
                         mAreCurrentTasksValuable.IsChecked = xResultAlt1;
 
                     if (bool.TryParse (iShared.Session.GetStringOrDefault ("IsDisoriented", string.Empty), out bool xResultAlt2))
-                        mIsDisoriented.IsChecked = xResultAlt2;
+                        mIsFocused.IsChecked = !xResultAlt2;
 
                     mResults.Text = iShared.Session.GetStringOrDefault ("Results", string.Empty);
                 }
@@ -451,7 +451,7 @@ namespace timeLog
             List <string> xResults = Shared.ParseTasksString (mResults.Text);
 
             LogInfo xLog = new LogInfo (iCounter.GetStartUtc (), Shared.ParseTasksString (mCurrentTasks.Text),
-                mAreCurrentTasksValuable.IsChecked!.Value, mIsDisoriented.IsChecked!.Value, iCounter.Stopwatch.TotalElapsedTime,
+                mAreCurrentTasksValuable.IsChecked!.Value, !mIsFocused.IsChecked!.Value, iCounter.Stopwatch.TotalElapsedTime,
                 xResults.Count > 0 ? xResults : null);
 
             // 過去ログのところに計測データが入ったあと、プログラムのクラッシュやオンラインストレージ系のアプリの挙動などにより
@@ -484,7 +484,7 @@ namespace timeLog
             mAutoPauses.IsChecked = true;
             iCounter.Stopwatch.AutoPauses = true;
             mAreCurrentTasksValuable.IsChecked = false;
-            mIsDisoriented.IsChecked = false;
+            mIsFocused.IsChecked = false;
             mResults.Clear ();
 
             mPreviousTasks.ScrollIntoView (mPreviousTasks.Items [0]);
@@ -507,7 +507,7 @@ namespace timeLog
                 mAutoPauses.IsChecked = true;
                 iCounter.Stopwatch.AutoPauses = true;
                 mAreCurrentTasksValuable.IsChecked = mAreNextTasksValuable.IsChecked;
-                mIsDisoriented.IsChecked = false;
+                mIsFocused.IsChecked = false;
                 mResults.Clear ();
 
                 mNextTasks.Clear ();
@@ -545,7 +545,7 @@ namespace timeLog
                 mAutoPauses.IsChecked = true;
                 iCounter.Stopwatch.AutoPauses = true;
                 mAreCurrentTasksValuable.IsChecked = false;
-                mIsDisoriented.IsChecked = false;
+                mIsFocused.IsChecked = false;
                 mResults.Clear ();
 
                 iShared.SavePreviousInfo ();
@@ -643,11 +643,11 @@ namespace timeLog
             }
         }
 
-        private void mIsDisoriented_IsCheckedChanged (object sender, RoutedEventArgs e)
+        private void mIsFocused_IsCheckedChanged (object sender, RoutedEventArgs e)
         {
             try
             {
-                iShared.Session.SetString ("IsDisoriented", mIsDisoriented.IsChecked!.Value.ToString ());
+                iShared.Session.SetString ("IsDisoriented", (!mIsFocused.IsChecked!.Value).ToString ());
                 // iShared.Session.Save ();
                 iShared.SavePreviousInfo ();
 
