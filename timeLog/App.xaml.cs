@@ -19,7 +19,9 @@ namespace timeLog
         {
             if (mIsPreviousInfoSaved == false)
             {
-                iShared.SavePreviousInfo ();
+                iShared.SavePreviousInfo (immediately: true);
+                iShared.EndSavingTask ();
+
                 mIsPreviousInfoSaved = true;
             }
         }

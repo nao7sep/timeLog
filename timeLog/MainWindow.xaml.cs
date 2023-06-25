@@ -243,7 +243,10 @@ namespace timeLog
                             // Windows 全体のクラッシュは今も数ヶ月に1回はある
                             // timeLog は24時間走らせるプログラムになりつつあるため、記録が歯抜けになるのをできるだけ防ぐ
 
-                            iShared.SavePreviousInfo ();
+                            // 遅延書き込みを実装した
+                            // このスレッドによる書き込みとコントロールを操作しての書き込みの衝突を考え、こちらも遅延書き込みに
+
+                            iShared.SavePreviousInfo (immediately: false);
 
                             if (iShared.IsWindowClosed == false)
                             {
@@ -413,7 +416,7 @@ namespace timeLog
             {
                 iShared.Session.SetString ("NextTasks", mNextTasks.Text);
                 // iShared.Session.Save ();
-                iShared.SavePreviousInfo ();
+                iShared.SavePreviousInfo (immediately: false);
 
                 iUpdateControls ();
             }
@@ -430,7 +433,7 @@ namespace timeLog
             {
                 iShared.Session.SetString ("AreNextTasksValuable", mAreNextTasksValuable.IsChecked!.Value.ToString ());
                 // iShared.Session.Save ();
-                iShared.SavePreviousInfo ();
+                iShared.SavePreviousInfo (immediately: false);
 
                 iUpdateControls ();
             }
@@ -513,7 +516,7 @@ namespace timeLog
                 mNextTasks.Clear ();
                 mAreNextTasksValuable.IsChecked = false;
 
-                iShared.SavePreviousInfo ();
+                iShared.SavePreviousInfo (immediately: false);
 
                 iUpdateControls ();
 
@@ -548,7 +551,7 @@ namespace timeLog
                 mIsFocused.IsChecked = false;
                 mResults.Clear ();
 
-                iShared.SavePreviousInfo ();
+                iShared.SavePreviousInfo (immediately: false);
 
                 iUpdateControls ();
 
@@ -567,7 +570,7 @@ namespace timeLog
             {
                 iShared.Session.SetString ("CurrentTasks", mCurrentTasks.Text);
                 // iShared.Session.Save ();
-                iShared.SavePreviousInfo ();
+                iShared.SavePreviousInfo (immediately: false);
 
                 iUpdateControls ();
             }
@@ -586,7 +589,7 @@ namespace timeLog
 
                 iShared.Session.SetString ("AutoPauses", mAutoPauses.IsChecked!.Value.ToString ());
                 // iShared.Session.Save ();
-                iShared.SavePreviousInfo ();
+                iShared.SavePreviousInfo (immediately: false);
 
                 iUpdateControls ();
             }
@@ -615,7 +618,7 @@ namespace timeLog
                     mPauseOrResumeCounting.Content = "中断";
                 }
 
-                iShared.SavePreviousInfo ();
+                iShared.SavePreviousInfo (immediately: false);
 
                 iUpdateControls ();
             }
@@ -632,7 +635,7 @@ namespace timeLog
             {
                 iShared.Session.SetString ("AreCurrentTasksValuable", mAreCurrentTasksValuable.IsChecked!.Value.ToString ());
                 // iShared.Session.Save ();
-                iShared.SavePreviousInfo ();
+                iShared.SavePreviousInfo (immediately: false);
 
                 iUpdateControls ();
             }
@@ -649,7 +652,7 @@ namespace timeLog
             {
                 iShared.Session.SetString ("IsDisoriented", (!mIsFocused.IsChecked!.Value).ToString ());
                 // iShared.Session.Save ();
-                iShared.SavePreviousInfo ();
+                iShared.SavePreviousInfo (immediately: false);
 
                 iUpdateControls ();
             }
@@ -715,7 +718,7 @@ namespace timeLog
                 iAddLog ();
                 iUpdateStatistics ();
 
-                iShared.SavePreviousInfo ();
+                iShared.SavePreviousInfo (immediately: false);
 
                 iUpdateControls ();
 
@@ -734,7 +737,7 @@ namespace timeLog
             {
                 iShared.Session.SetString ("Results", mResults.Text);
                 // iShared.Session.Save ();
-                iShared.SavePreviousInfo ();
+                iShared.SavePreviousInfo (immediately: false);
 
                 iUpdateControls ();
             }

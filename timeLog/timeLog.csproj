@@ -16,7 +16,7 @@
 
         <Configuration></Configuration>
 
-        <Version>0.6</Version>
+        <Version>0.7</Version>
         <AssemblyVersion></AssemblyVersion>
         <FileVersion></FileVersion>
         <InformationalVersion></InformationalVersion>
@@ -24,7 +24,7 @@
 
     <ItemGroup>
         <PackageReference Include="Notification.Wpf" Version="7.0.0" />
-        <PackageReference Include="SharpHook" Version="4.2.0" />
+        <PackageReference Include="SharpHook" Version="4.2.1" />
         <PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" />
     </ItemGroup>
 
