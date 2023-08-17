@@ -8,6 +8,8 @@ timeLog/bin/Release/net6.0-windows > Compiled
 Compiled/runtimes/linux-arm
 Compiled/runtimes/linux-arm64
 Compiled/runtimes/linux-x64
+Compiled/runtimes/maccatalyst-arm64
+Compiled/runtimes/maccatalyst-x64
 Compiled/runtimes/osx-arm64
 Compiled/runtimes/osx-x64
 Compiled/runtimes/win-arm

@@ -56,6 +56,10 @@ namespace timeLog
                         mWindow.WindowState = WindowState.Maximized;
                 }
 
+                TextOptions.SetTextFormattingMode (this, iShared.TextFormattingMode);
+                TextOptions.SetTextHintingMode (this, iShared.TextHintingMode);
+                TextOptions.SetTextRenderingMode (this, iShared.TextRenderingMode);
+
                 string? xFontFamily = ConfigurationManager.AppSettings ["FontFamily"];
 
                 if (string.IsNullOrEmpty (xFontFamily) == false)
