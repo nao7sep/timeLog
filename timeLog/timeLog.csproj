@@ -23,9 +23,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Notification.Wpf" Version="7.0.0.2" />
-        <PackageReference Include="SharpHook" Version="5.0.0" />
-        <PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" />
+        <PackageReference Include="Notification.Wpf" Version="8.0.0" />
+        <PackageReference Include="SharpHook" Version="5.2.2" />
+        <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
     </ItemGroup>
 
     <ItemGroup>

@@ -65,7 +65,7 @@ namespace timeLog
         // null チェックを省くため、単一のインスタンスを Reset で使い回す
         // Task や、それを内部的に生成するものをいくつも作る実装は、とても分かりにくい
 
-        public static readonly nStopwatch Stopwatch = new nStopwatch
+        public static readonly nConcurrentStopwatch Stopwatch = new nConcurrentStopwatch
         {
 #if DEBUG
             AutoPausingInterval = TimeSpan.FromSeconds (3)
