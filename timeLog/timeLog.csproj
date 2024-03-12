@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>net6.0-windows</TargetFramework>
+        <TargetFramework>net8.0-windows</TargetFramework>
         <Nullable>enable</Nullable>
         <UseWPF>true</UseWPF>
 
@@ -16,7 +16,7 @@
 
         <Configuration></Configuration>
 
-        <Version>0.8</Version>
+        <Version>0.9</Version>
         <AssemblyVersion></AssemblyVersion>
         <FileVersion></FileVersion>
         <InformationalVersion></InformationalVersion>
@@ -30,7 +30,7 @@
 
     <ItemGroup>
       <Reference Include="Nekote">
-        <HintPath>..\..\Nekote\Nekote\bin\Release\net6.0\Nekote.dll</HintPath>
+        <HintPath>..\..\Nekote\Nekote\bin\Release\net8.0\Nekote.dll</HintPath>
       </Reference>
     </ItemGroup>
 
