@@ -29,9 +29,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Reference Include="Nekote">
-        <HintPath>..\..\Nekote\Nekote\bin\Release\net8.0\Nekote.dll</HintPath>
-      </Reference>
+      <ProjectReference Include="..\..\Nekote\Nekote\Nekote.csproj" />
     </ItemGroup>
 
 </Project>
