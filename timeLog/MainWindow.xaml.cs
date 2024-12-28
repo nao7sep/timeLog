@@ -88,8 +88,8 @@ namespace timeLog
 
         private void iUpdateControls ()
         {
-            bool xAreNextTasksOK = string.IsNullOrEmpty (mNextTasks.Text) == false && Shared.ParseTasksString (mNextTasks.Text).Count > 0,
-                xAreCurrentTasksOK = string.IsNullOrEmpty (mCurrentTasks.Text) == false && Shared.ParseTasksString (mCurrentTasks.Text).Count > 0;
+            bool xAreNextTasksOK = string.IsNullOrEmpty (mNextTasks.Text) == false && (mNextTasks.Text.Optimize () ?? "").Length > 0,
+                xAreCurrentTasksOK = string.IsNullOrEmpty (mCurrentTasks.Text) == false && (mCurrentTasks.Text.Optimize () ?? "").Length > 0;
 
             if (iCounter.AreTasksStarted)
             {
@@ -261,7 +261,7 @@ namespace timeLog
 
                                     // 開始されていないのは「計測」なのか「タスク」なのか
                                     // 最初は「計測」を考えたが、「はよ働け！」を言いたいので「タスク」に
-                                    iShared.NotificationContent.Message = "タスクが開始されていません。";
+                                    iShared.NotificationContent.Message = "はよ働け！";
                                 }
 
                                 else if (iCounter.IsPausedManually)
@@ -270,7 +270,7 @@ namespace timeLog
                                     iShared.NotificationContent.Foreground = iShared.PausedNotificationForegroundColor;
 
                                     // 厳密には「計測」が中断されているが、上と同じ理由で「タスク」に
-                                    iShared.NotificationContent.Message = "タスクが中断されています。";
+                                    iShared.NotificationContent.Message = "止まってるで！";
                                 }
 
                                 else
@@ -296,7 +296,7 @@ namespace timeLog
                                     // しなければならないことが多いときにまだのことがゴソッと表示されるとうるさい
 
                                     if (xParagraphCount == 0)
-                                        iShared.NotificationContent.Message = "今のタスクを入力してください。";
+                                        iShared.NotificationContent.Message = "何やってるか書いて！";
 
                                     else if (xParagraphCount == 1)
                                         iShared.NotificationContent.Message = string.Join (Environment.NewLine, xParagraphs.First ());
@@ -455,11 +455,11 @@ namespace timeLog
             // 計測終了時に100ミリ秒だけ経過時間が（空でなく）0になるかもしれないが、
             //     絶妙のタイミングを要することで発生確率が極めて低いし、ユーザーへの影響もない
 
-            List <string> xResults = Shared.ParseTasksString (mResults.Text);
+            string? xResultsString = mResults.Text.Optimize ();
 
-            LogInfo xLog = new LogInfo (iCounter.GetStartUtc (), Shared.ParseTasksString (mCurrentTasks.Text),
+            LogInfo xLog = new LogInfo (iCounter.GetStartUtc (), mCurrentTasks.Text.Optimize ()!,
                 mAreCurrentTasksValuable.IsChecked!.Value, !mIsFocused.IsChecked!.Value, iCounter.Stopwatch.TotalElapsedTime,
-                xResults.Count > 0 ? xResults : null);
+                string.IsNullOrEmpty (xResultsString) == false ? xResultsString : null);
 
             // 過去ログのところに計測データが入ったあと、プログラムのクラッシュやオンラインストレージ系のアプリの挙動などにより
             //     「プログラムの再起動時に timeLog.Session.txt の内容が古く、それが読み込まれる」ということが少なくとも以前の実装ではあった
@@ -510,7 +510,7 @@ namespace timeLog
                 iCounter.AreTasksStarted = true;
                 iCounter.Stopwatch.Start ();
 
-                mCurrentTasks.Text = string.Join (Environment.NewLine, Shared.ParseTasksString (mNextTasks.Text));
+                mCurrentTasks.Text = mNextTasks.Text;
                 mAutoPauses.IsChecked = true;
                 iCounter.Stopwatch.AutoPauses = true;
                 mAreCurrentTasksValuable.IsChecked = mAreNextTasksValuable.IsChecked;
@@ -831,7 +831,7 @@ namespace timeLog
 
         private bool iDeleteLog ()
         {
-            if (MessageBox.Show (this, "選択中のログを削除しますか？", string.Empty, MessageBoxButton.YesNo, MessageBoxImage.None, MessageBoxResult.No) == MessageBoxResult.Yes)
+            if (MessageBox.Show (this, "選択中のログを消しますか？", string.Empty, MessageBoxButton.YesNo, MessageBoxImage.None, MessageBoxResult.No) == MessageBoxResult.Yes)
             {
                 int xSelectedIndex = mPreviousTasks.SelectedIndex;
 

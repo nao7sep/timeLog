@@ -14,30 +14,6 @@ namespace timeLog
 {
     public static class Shared
     {
-        public static List <string> ParseTasksString (string value)
-        {
-            List <string> xTasks = new List <string> ();
-
-            using (StringReader xReader = new StringReader (value))
-            {
-                string? xLine;
-
-                while ((xLine = xReader.ReadLine ()) != null)
-                {
-                    // 2回の掃除により、最小限の文字列に
-                    // コストの低そうな Trim から行う
-
-                    if ((xLine = xLine.Trim ()).Length > 0)
-                    {
-                        if ((xLine = Regex.Replace (xLine, @"\s+", "\x20", RegexOptions.Compiled | RegexOptions.CultureInvariant)).Length > 0)
-                            xTasks.Add (xLine);
-                    }
-                }
-            }
-
-            return xTasks;
-        }
-
         public static void AddLogToFile (string filePath, LogInfo log)
         {
             if (Path.IsPathFullyQualified (filePath) == false)
@@ -238,12 +214,12 @@ namespace timeLog
 
         public static string IsValuableToFriendlyString (bool value)
         {
-            return value ? "価値をつくった" : "価値をつくらなかった";
+            return value ? "付加価値あり" : "どうでもよいこと";
         }
 
         public static string IsDisorientedToFriendlyString (bool value)
         {
-            return value ? "集中できなかった" : "集中できた";
+            return value ? "集中した" : "ダラダラした";
         }
 
         public readonly static string DateFriendlyFormatString = "yyyy'/'M'/'d";

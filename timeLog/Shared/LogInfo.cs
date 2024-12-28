@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Nekote;
 
 namespace timeLog
 {
@@ -29,20 +30,7 @@ namespace timeLog
             }
         }
 
-        public readonly List <string> Tasks;
-
-        private string? mTasksString = null;
-
-        public string TasksString
-        {
-            get
-            {
-                if (mTasksString == null)
-                    mTasksString = string.Join (Environment.NewLine, Tasks);
-
-                return mTasksString;
-            }
-        }
+        public string TasksString { get; init; }
 
         // プロパティーでないと Binding できないようだ
 
@@ -83,37 +71,24 @@ namespace timeLog
             }
         }
 
-        public readonly List <string>? Results;
-
-        private string? mResultsString = null;
-
-        public string? ResultsString
-        {
-            get
-            {
-                if (mResultsString == null && HasResults)
-                    mResultsString = string.Join (Environment.NewLine, Results!);
-
-                return mResultsString;
-            }
-        }
+        public string? ResultsString { get; init; }
 
         public bool HasResults
         {
             get
             {
-                return Results != null && Results.Count > 0;
+                return string.IsNullOrWhiteSpace (ResultsString) == false;
             }
         }
 
-        public LogInfo (DateTime startUtc, List <string> tasks, bool isValuable, bool isDisoriented, TimeSpan elapsedTime, List <string>? results)
+        public LogInfo (DateTime startUtc, string tasksString, bool isValuable, bool isDisoriented, TimeSpan elapsedTime, string? resultsString)
         {
             StartUtc = startUtc;
-            Tasks = tasks;
+            TasksString = tasksString;
             IsValuable = isValuable;
             IsDisoriented = isDisoriented;
             ElapsedTime = elapsedTime;
-            Results = results;
+            ResultsString = resultsString;
         }
 
         public string ToChunk ()
@@ -128,10 +103,23 @@ namespace timeLog
             xBuilder.AppendLine ("IsValuable:" + IsValuable.ToString ());
             xBuilder.AppendLine ("IsDisoriented:" + IsDisoriented.ToString ());
             xBuilder.AppendLine ("ElapsedTime:" + ElapsedTime.ToString ("c"));
-            xBuilder.AppendLine (string.Join (Environment.NewLine, Tasks.Select (x => "//\x20" + x)));
+
+            string _StringToLines (string str, string prefix)
+            {
+                // EnumerateLines, by default, removes redundant empty lines.
+                return string.Join (Environment.NewLine, str.EnumerateLines ().Select (x =>
+                {
+                    if (string.IsNullOrEmpty (x) == false)
+                        return $"{prefix}\x20{x}";
+
+                    else return prefix;
+                }));
+            }
+
+            xBuilder.AppendLine (_StringToLines (TasksString, "//"));
 
             if (HasResults)
-                xBuilder.AppendLine (string.Join (Environment.NewLine, Results!.Select (x => "=>\x20" + x)));
+                xBuilder.AppendLine (_StringToLines (ResultsString!, "=>"));
 
             return xBuilder.ToString ();
         }
@@ -188,8 +176,14 @@ namespace timeLog
                     if (xLine.StartsWith ("//\x20"))
                         xTasks.Add (xLine.Substring ("//\x20".Length));
 
+                    else if (xLine.StartsWith ("//"))
+                        xTasks.Add (string.Empty);
+
                     else if (xLine.StartsWith ("=>\x20"))
                         xResults.Add (xLine.Substring ("=>\x20".Length));
+
+                    else if (xLine.StartsWith ("=>"))
+                        xResults.Add (string.Empty);
 
                     else throw new FormatException ();
                 }
@@ -197,8 +191,13 @@ namespace timeLog
                 if (xTasks.Count == 0)
                     throw new FormatException ();
 
+                // Whenever data is acquired, text must be optimized to reduce redundant empty lines.
+
+                string? xTasksString = string.Join (Environment.NewLine, xTasks).Optimize (),
+                       xResultsString = xResults.Count > 0 ? string.Join (Environment.NewLine, xResults).Optimize () : null;
+
                 // HasResults を通るので空の List でもよいが、一応、null に整えておく
-                return new LogInfo (xStartUtc, xTasks, xIsValuable, xIsDisoriented, xElapsedTime, xResults.Count > 0 ? xResults : null);
+                return new LogInfo (xStartUtc, xTasksString!, xIsValuable, xIsDisoriented, xElapsedTime, xResultsString);
             }
         }
     }
