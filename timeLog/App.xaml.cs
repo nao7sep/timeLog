@@ -5,6 +5,7 @@ using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using Notification.Wpf.Constants;
 
 namespace timeLog
 {
@@ -13,6 +14,11 @@ namespace timeLog
     /// </summary>
     public partial class App: Application
     {
+        private void mApp_Startup (object sender, StartupEventArgs e)
+        {
+            NotificationConstants.MaxWidth = double.MaxValue;
+        }
+
         private bool mIsPreviousInfoSaved;
 
         private void iSavePreviousInfo ()

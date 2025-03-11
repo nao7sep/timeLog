@@ -259,14 +259,14 @@ namespace timeLog
 
                 string xFriendlyString = FormattableString.Invariant (
 $@"{IsValuableToFriendlyString (true)}: {SecondsToString (xValuableSeconds)}（{xValuableSecondsPercentage}％）
-    {IsDisorientedToFriendlyString (false)}: {SecondsToString (xValuableAndNotDisorientedSeconds)}（{xValuableAndNotDisorientedSecondsPercentage}％）
     {IsDisorientedToFriendlyString (true)}: {SecondsToString (xValuableAndDisorientedSeconds)}（{xValuableAndDisorientedSecondsPercentage}％）
+    {IsDisorientedToFriendlyString (false)}: {SecondsToString (xValuableAndNotDisorientedSeconds)}（{xValuableAndNotDisorientedSecondsPercentage}％）
 {IsValuableToFriendlyString (false)}: {SecondsToString (xNotValuableSeconds)}（{xNotValuableSecondsPercentage}％）
-    {IsDisorientedToFriendlyString (false)}: {SecondsToString (xNotValuableAndNotDisorientedSeconds)}（{xNotValuableAndNotDisorientedSecondsPercentage}％）
     {IsDisorientedToFriendlyString (true)}: {SecondsToString (xNotValuableAndDisorientedSeconds)}（{xNotValuableAndDisorientedSecondsPercentage}％）
---------------------
-{IsDisorientedToFriendlyString (false)}: {SecondsToString (xNotDisorientedSeconds)}（{xNotDisorientedSecondsPercentage}％）
-{IsDisorientedToFriendlyString (true)}: {SecondsToString (xDisorientedSeconds)}（{xDisorientedSecondsPercentage}％）");
+    {IsDisorientedToFriendlyString (false)}: {SecondsToString (xNotValuableAndNotDisorientedSeconds)}（{xNotValuableAndNotDisorientedSecondsPercentage}％）
+-------------------------
+{IsDisorientedToFriendlyString (true)}: {SecondsToString (xDisorientedSeconds)}（{xDisorientedSecondsPercentage}％）
+{IsDisorientedToFriendlyString (false)}: {SecondsToString (xNotDisorientedSeconds)}（{xNotDisorientedSecondsPercentage}％）");
 
                 return (x.Date, FriendlyString: xFriendlyString);
             }).

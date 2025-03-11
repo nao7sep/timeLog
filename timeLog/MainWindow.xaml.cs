@@ -40,6 +40,10 @@ namespace timeLog
         private Task? mHookingTask = null;
 #pragma warning restore IDE0052
 
+        private readonly double _NotificationTitleFontSize = 12 * 3;
+        private readonly double _NotificationNormalMessageFontSize = 12 * 3;
+        private readonly double _NotificationLargeMessageFontSize = 12 * 7;
+
         private void mWindow_Initialized (object sender, EventArgs e)
         {
             try
@@ -64,6 +68,9 @@ namespace timeLog
 
                 if (string.IsNullOrEmpty (xFontFamily) == false)
                     mWindow.FontFamily = new FontFamily (xFontFamily);
+
+                // We dont update notification font settings here because the notification content (and its corresponding loop) may have been initialized already.
+                // Considering cases where the app starts in the paused state, I prefer not to complicate the code by delaying the notification loop.
 
                 if (bool.TryParse (ConfigurationManager.AppSettings ["IsImeEnabled"], out bool xResultAlt2))
                     InputMethod.Current.ImeState = InputMethodState.On;
@@ -254,6 +261,8 @@ namespace timeLog
 
                             if (iShared.IsWindowClosed == false)
                             {
+                                bool xIsLargeMessage = false;
+
                                 if (iCounter.AreTasksStarted == false)
                                 {
                                     iShared.NotificationContent.Background = iShared.NotStartedNotificationBackgroundColor;
@@ -262,6 +271,7 @@ namespace timeLog
                                     // 開始されていないのは「計測」なのか「タスク」なのか
                                     // 最初は「計測」を考えたが、「はよ働け！」を言いたいので「タスク」に
                                     iShared.NotificationContent.Message = "はよ働け！";
+                                    xIsLargeMessage = true;
                                 }
 
                                 else if (iCounter.IsPausedManually)
@@ -271,6 +281,7 @@ namespace timeLog
 
                                     // 厳密には「計測」が中断されているが、上と同じ理由で「タスク」に
                                     iShared.NotificationContent.Message = "止まってるで！";
+                                    xIsLargeMessage = true;
                                 }
 
                                 else
@@ -304,13 +315,34 @@ namespace timeLog
                                     else iShared.NotificationContent.Message = string.Join (Environment.NewLine, xParagraphs.ElementAt (1));
                                 }
 
-                                iShared.NotificationManager.Show (iShared.NotificationContent);
+                                // Makes sure the fonts and sizes are up-to-date.
+                                // mWindow_Initialized may be called AFTER the notification loop has started.
+
+                                mWindow.Dispatcher.Invoke (() =>
+                                {
+                                    iShared.NotificationContent.TitleTextSettings.FontFamily = mWindow.FontFamily;
+                                    iShared.NotificationContent.MessageTextSettings.FontFamily = mWindow.FontFamily;
+                                });
+
+                                iShared.NotificationContent.TitleTextSettings.FontSize = _NotificationTitleFontSize;
+
+                                if (xIsLargeMessage)
+                                    iShared.NotificationContent.MessageTextSettings.FontSize = _NotificationLargeMessageFontSize;
+                                else iShared.NotificationContent.MessageTextSettings.FontSize = _NotificationNormalMessageFontSize;
+
+                                // By default, the notification stays visible for about 3 seconds (I think).
+                                // 3 seconds out of 180 seconds is often not enough and I often work for some time with the counter paused.
+                                TimeSpan? xExpirationTime = xIsLargeMessage ? TimeSpan.FromSeconds (10) : null;
+
+                                iShared.NotificationManager.Show (iShared.NotificationContent, expirationTime: xExpirationTime);
                             }
                         }
                     }
 
-                    catch
+                    catch (Exception xException)
                     {
+                        // For debugging purposes.
+                        MessageBox.Show (xException.ToString ());
                     }
 
                     // 少々カクつくかもしれないが、このくらいで十分
