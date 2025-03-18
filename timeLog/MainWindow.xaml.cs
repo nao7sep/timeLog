@@ -403,7 +403,7 @@ namespace timeLog
                         mAreCurrentTasksValuable.IsChecked = xResultAlt1;
 
                     if (bool.TryParse (iShared.Session.GetStringOrDefault ("IsFocused", string.Empty), out bool xResultAlt2))
-                        mIsFocused.IsChecked = !xResultAlt2;
+                        mIsFocused.IsChecked = xResultAlt2;
 
                     mResults.Text = iShared.Session.GetStringOrDefault ("Results", string.Empty);
                 }
@@ -490,7 +490,7 @@ namespace timeLog
             string? xResultsString = mResults.Text.Optimize ();
 
             LogInfo xLog = new LogInfo (iCounter.GetStartUtc (), mCurrentTasks.Text.Optimize ()!,
-                mAreCurrentTasksValuable.IsChecked!.Value, !mIsFocused.IsChecked!.Value, iCounter.Stopwatch.TotalElapsedTime,
+                mAreCurrentTasksValuable.IsChecked!.Value, mIsFocused.IsChecked!.Value, iCounter.Stopwatch.TotalElapsedTime,
                 string.IsNullOrEmpty (xResultsString) == false ? xResultsString : null);
 
             // 過去ログのところに計測データが入ったあと、プログラムのクラッシュやオンラインストレージ系のアプリの挙動などにより
