@@ -118,7 +118,7 @@ namespace timeLog
 
                 else mPauseOrResumeCounting.Content = "再開";
 
-                mAreCurrentTasksValuable.IsEnabled = true;
+                mIsValuable.IsEnabled = true;
                 mIsFocused.IsEnabled = true;
 
                 if (xAreCurrentTasksOK)
@@ -152,7 +152,7 @@ namespace timeLog
                 mAutoPauses.IsEnabled = false;
                 mPauseOrResumeCounting.IsEnabled = false;
                 mPauseOrResumeCounting.Content = "中断";
-                mAreCurrentTasksValuable.IsEnabled = false;
+                mIsValuable.IsEnabled = false;
                 mIsFocused.IsEnabled = false;
                 mEndCurrentTasks.IsEnabled = false;
 
@@ -399,8 +399,8 @@ namespace timeLog
                         ElapsedTime = iCounter.PreviousElapsedTime ?? TimeSpan.Zero // 起動できないと復旧できない
                     });
 
-                    if (bool.TryParse (iShared.Session.GetStringOrDefault ("AreCurrentTasksValuable", string.Empty), out bool xResultAlt1))
-                        mAreCurrentTasksValuable.IsChecked = xResultAlt1;
+                    if (bool.TryParse (iShared.Session.GetStringOrDefault ("IsValuable", string.Empty), out bool xResultAlt1))
+                        mIsValuable.IsChecked = xResultAlt1;
 
                     if (bool.TryParse (iShared.Session.GetStringOrDefault ("IsFocused", string.Empty), out bool xResultAlt2))
                         mIsFocused.IsChecked = !xResultAlt2;
@@ -490,7 +490,7 @@ namespace timeLog
             string? xResultsString = mResults.Text.Optimize ();
 
             LogInfo xLog = new LogInfo (iCounter.GetStartUtc (), mCurrentTasks.Text.Optimize ()!,
-                mAreCurrentTasksValuable.IsChecked!.Value, !mIsFocused.IsChecked!.Value, iCounter.Stopwatch.TotalElapsedTime,
+                mIsValuable.IsChecked!.Value, !mIsFocused.IsChecked!.Value, iCounter.Stopwatch.TotalElapsedTime,
                 string.IsNullOrEmpty (xResultsString) == false ? xResultsString : null);
 
             // 過去ログのところに計測データが入ったあと、プログラムのクラッシュやオンラインストレージ系のアプリの挙動などにより
@@ -522,7 +522,7 @@ namespace timeLog
             mCurrentTasks.Clear ();
             mAutoPauses.IsChecked = true;
             iCounter.Stopwatch.AutoPauses = true;
-            mAreCurrentTasksValuable.IsChecked = false;
+            mIsValuable.IsChecked = false;
             mIsFocused.IsChecked = false;
             mResults.Clear ();
 
@@ -545,7 +545,7 @@ namespace timeLog
                 mCurrentTasks.Text = mNextTasks.Text;
                 mAutoPauses.IsChecked = true;
                 iCounter.Stopwatch.AutoPauses = true;
-                mAreCurrentTasksValuable.IsChecked = mAreNextTasksValuable.IsChecked;
+                mIsValuable.IsChecked = mAreNextTasksValuable.IsChecked;
                 mIsFocused.IsChecked = false;
                 mResults.Clear ();
 
@@ -583,7 +583,7 @@ namespace timeLog
                 mCurrentTasks.Clear ();
                 mAutoPauses.IsChecked = true;
                 iCounter.Stopwatch.AutoPauses = true;
-                mAreCurrentTasksValuable.IsChecked = false;
+                mIsValuable.IsChecked = false;
                 mIsFocused.IsChecked = false;
                 mResults.Clear ();
 
@@ -665,11 +665,11 @@ namespace timeLog
             }
         }
 
-        private void mAreCurrentTasksValuable_IsCheckedChanged (object sender, RoutedEventArgs e)
+        private void mIsValuable_IsCheckedChanged (object sender, RoutedEventArgs e)
         {
             try
             {
-                iShared.Session.SetString ("AreCurrentTasksValuable", mAreCurrentTasksValuable.IsChecked!.Value.ToString ());
+                iShared.Session.SetString ("IsValuable", mIsValuable.IsChecked!.Value.ToString ());
                 // iShared.Session.Save ();
                 iShared.SavePreviousInfo (immediately: false);
 
