@@ -402,7 +402,7 @@ namespace timeLog
                     if (bool.TryParse (iShared.Session.GetStringOrDefault ("AreCurrentTasksValuable", string.Empty), out bool xResultAlt1))
                         mAreCurrentTasksValuable.IsChecked = xResultAlt1;
 
-                    if (bool.TryParse (iShared.Session.GetStringOrDefault ("IsDisoriented", string.Empty), out bool xResultAlt2))
+                    if (bool.TryParse (iShared.Session.GetStringOrDefault ("IsFocused", string.Empty), out bool xResultAlt2))
                         mIsFocused.IsChecked = !xResultAlt2;
 
                     mResults.Text = iShared.Session.GetStringOrDefault ("Results", string.Empty);
@@ -686,7 +686,7 @@ namespace timeLog
         {
             try
             {
-                iShared.Session.SetString ("IsDisoriented", (!mIsFocused.IsChecked!.Value).ToString ());
+                iShared.Session.SetString ("IsFocused", (!mIsFocused.IsChecked!.Value).ToString ());
                 // iShared.Session.Save ();
                 iShared.SavePreviousInfo (immediately: false);
 

@@ -88,7 +88,7 @@
                             <!-- 所要時間が何よりも大事なので通常の1.5倍のフォントサイズに -->
                             <TextBlock Text="{Binding ElapsedTimeString}" Margin="10,0,0,0" FontSize="18" />
                             <TextBlock x:Name="mIsValuableText" Text="{Binding IsValuableFriendlyString}" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="Blue" FontWeight="Bold" />
-                            <TextBlock x:Name="mIsDisorientedText" Text="{Binding IsDisorientedFriendlyString}" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="Red" FontWeight="Bold" />
+                            <TextBlock x:Name="mIsFocusedText" Text="{Binding IsFocusedFriendlyString}" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="Red" FontWeight="Bold" />
                         </StackPanel>
                         <!-- ListBox の方で ScrollViewer.HorizontalScrollBarVisibility を Disabled にしないとラップされない -->
                         <TextBlock Text="{Binding TasksString}" Margin="10,0,10,10" TextWrapping="Wrap" />
@@ -100,8 +100,8 @@
                         <DataTrigger Binding="{Binding IsValuable}" Value="False">
                             <Setter TargetName="mIsValuableText" Property="Visibility" Value="Collapsed" />
                         </DataTrigger>
-                        <DataTrigger Binding="{Binding IsDisoriented}" Value="False">
-                            <Setter TargetName="mIsDisorientedText" Property="Visibility" Value="Collapsed" />
+                        <DataTrigger Binding="{Binding IsFocused}" Value="False">
+                            <Setter TargetName="mIsFocusedText" Property="Visibility" Value="Collapsed" />
                         </DataTrigger>
                         <DataTrigger Binding="{Binding HasResults}" Value="False">
                             <Setter TargetName="mResultsBorder" Property="Visibility" Value="Collapsed" />

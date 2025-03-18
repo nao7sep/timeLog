@@ -44,13 +44,13 @@ namespace timeLog
             }
         }
 
-        public bool IsDisoriented { get; private set; }
+        public bool IsFocused { get; private set; }
 
-        public string IsDisorientedFriendlyString
+        public string IsFocusedFriendlyString
         {
             get
             {
-                return Shared.IsDisorientedToFriendlyString (IsDisoriented);
+                return Shared.IsFocusedToFriendlyString (IsFocused);
             }
         }
 
@@ -81,12 +81,12 @@ namespace timeLog
             }
         }
 
-        public LogInfo (DateTime startUtc, string tasksString, bool isValuable, bool isDisoriented, TimeSpan elapsedTime, string? resultsString)
+        public LogInfo (DateTime startUtc, string tasksString, bool isValuable, bool isFocused, TimeSpan elapsedTime, string? resultsString)
         {
             StartUtc = startUtc;
             TasksString = tasksString;
             IsValuable = isValuable;
-            IsDisoriented = isDisoriented;
+            IsFocused = isFocused;
             ElapsedTime = elapsedTime;
             ResultsString = resultsString;
         }
@@ -101,7 +101,7 @@ namespace timeLog
             StringBuilder xBuilder = new StringBuilder ();
             xBuilder.AppendLine ("StartUtc:" + StartUtc.ToString ("O"));
             xBuilder.AppendLine ("IsValuable:" + IsValuable.ToString ());
-            xBuilder.AppendLine ("IsDisoriented:" + IsDisoriented.ToString ());
+            xBuilder.AppendLine ("IsFocused:" + IsFocused.ToString ());
             xBuilder.AppendLine ("ElapsedTime:" + ElapsedTime.ToString ("c"));
 
             string _StringToLines (string str, string prefix)
@@ -152,10 +152,10 @@ namespace timeLog
 
                 xLine = xReader.ReadLine ();
 
-                if (xLine!.StartsWith ("IsDisoriented:", StringComparison.OrdinalIgnoreCase) == false)
+                if (xLine!.StartsWith ("IsFocused:", StringComparison.OrdinalIgnoreCase) == false)
                     throw new FormatException ();
 
-                bool xIsDisoriented = bool.Parse (xLine.AsSpan ("IsDisoriented:".Length));
+                bool xIsFocused = bool.Parse (xLine.AsSpan ("IsFocused:".Length));
 
                 // -----------------------------------------------------------------------------
 
@@ -197,7 +197,7 @@ namespace timeLog
                        xResultsString = xResults.Count > 0 ? string.Join (Environment.NewLine, xResults).Optimize () : null;
 
                 // HasResults を通るので空の List でもよいが、一応、null に整えておく
-                return new LogInfo (xStartUtc, xTasksString!, xIsValuable, xIsDisoriented, xElapsedTime, xResultsString);
+                return new LogInfo (xStartUtc, xTasksString!, xIsValuable, xIsFocused, xElapsedTime, xResultsString);
             }
         }
     }

@@ -12,9 +12,9 @@ namespace timeLog
     {
         // セッション情報のファイルにキーがなければ null になり、
         //     前回、カウント中でも中断中でもない状態で終わったことが示される
-        // その場合、関連項目である mIsDisoriented などの値は復元されない
+        // その場合、関連項目である mIsFocused などの値は復元されない
 
-        // キーがあり、値を読めれば、mIsDisoriented などが復元され、
+        // キーがあり、値を読めれば、mIsFocused などが復元され、
         //     カウントが中断されている状態から操作可能に
 
         public static DateTime? PreviousStartUtc;

@@ -217,7 +217,7 @@ namespace timeLog
             return value ? "付加価値あり" : "どうでもよいこと";
         }
 
-        public static string IsDisorientedToFriendlyString (bool value)
+        public static string IsFocusedToFriendlyString (bool value)
         {
             return value ? "集中した" : "ダラダラした";
         }
@@ -238,35 +238,35 @@ namespace timeLog
                 var xData3 = xData1.Where (y => y.Date == x.Date).Select (y => y.Value);
 
                 double
-                    xValuableAndNotDisorientedSeconds = xData3.Where (y => y.IsValuable && y.IsDisoriented == false).Sum (y => y.ElapsedTime.TotalSeconds),
-                    xValuableAndDisorientedSeconds = xData3.Where (y => y.IsValuable && y.IsDisoriented).Sum (y => y.ElapsedTime.TotalSeconds),
-                    xValuableSeconds = xValuableAndNotDisorientedSeconds + xValuableAndDisorientedSeconds,
-                    xNotValuableAndNotDisorientedSeconds = xData3.Where (y => y.IsValuable == false && y.IsDisoriented == false).Sum (y => y.ElapsedTime.TotalSeconds),
-                    xNotValuableAndDisorientedSeconds = xData3.Where (y => y.IsValuable == false && y.IsDisoriented).Sum (y => y.ElapsedTime.TotalSeconds),
-                    xNotValuableSeconds = xNotValuableAndNotDisorientedSeconds + xNotValuableAndDisorientedSeconds,
+                    xValuableAndNotFocusedSeconds = xData3.Where (y => y.IsValuable && y.IsFocused == false).Sum (y => y.ElapsedTime.TotalSeconds),
+                    xValuableAndFocusedSeconds = xData3.Where (y => y.IsValuable && y.IsFocused).Sum (y => y.ElapsedTime.TotalSeconds),
+                    xValuableSeconds = xValuableAndNotFocusedSeconds + xValuableAndFocusedSeconds,
+                    xNotValuableAndNotFocusedSeconds = xData3.Where (y => y.IsValuable == false && y.IsFocused == false).Sum (y => y.ElapsedTime.TotalSeconds),
+                    xNotValuableAndFocusedSeconds = xData3.Where (y => y.IsValuable == false && y.IsFocused).Sum (y => y.ElapsedTime.TotalSeconds),
+                    xNotValuableSeconds = xNotValuableAndNotFocusedSeconds + xNotValuableAndFocusedSeconds,
                     xTotalSeconds = xValuableSeconds + xNotValuableSeconds,
-                    xNotDisorientedSeconds = xValuableAndNotDisorientedSeconds + xNotValuableAndNotDisorientedSeconds,
-                    xDisorientedSeconds = xValuableAndDisorientedSeconds + xNotValuableAndDisorientedSeconds;
+                    xNotFocusedSeconds = xValuableAndNotFocusedSeconds + xNotValuableAndNotFocusedSeconds,
+                    xFocusedSeconds = xValuableAndFocusedSeconds + xNotValuableAndFocusedSeconds;
 
                 int xValuableSecondsPercentage = (int) Math.Round (xValuableSeconds * 100 / xTotalSeconds),
-                    xValuableAndNotDisorientedSecondsPercentage = (int) Math.Round (xValuableAndNotDisorientedSeconds * 100 / xTotalSeconds),
-                    xValuableAndDisorientedSecondsPercentage = xValuableSecondsPercentage - xValuableAndNotDisorientedSecondsPercentage,
+                    xValuableAndNotFocusedSecondsPercentage = (int) Math.Round (xValuableAndNotFocusedSeconds * 100 / xTotalSeconds),
+                    xValuableAndFocusedSecondsPercentage = xValuableSecondsPercentage - xValuableAndNotFocusedSecondsPercentage,
                     xNotValuableSecondsPercentage = 100 - xValuableSecondsPercentage,
-                    xNotValuableAndNotDisorientedSecondsPercentage = (int) Math.Round (xNotValuableAndNotDisorientedSeconds * 100 / xTotalSeconds),
-                    xNotValuableAndDisorientedSecondsPercentage = xNotValuableSecondsPercentage - xNotValuableAndNotDisorientedSecondsPercentage,
-                    xNotDisorientedSecondsPercentage = (int) Math.Round (xNotDisorientedSeconds * 100 / xTotalSeconds),
-                    xDisorientedSecondsPercentage = 100 - xNotDisorientedSecondsPercentage;
+                    xNotValuableAndNotFocusedSecondsPercentage = (int) Math.Round (xNotValuableAndNotFocusedSeconds * 100 / xTotalSeconds),
+                    xNotValuableAndFocusedSecondsPercentage = xNotValuableSecondsPercentage - xNotValuableAndNotFocusedSecondsPercentage,
+                    xNotFocusedSecondsPercentage = (int) Math.Round (xNotFocusedSeconds * 100 / xTotalSeconds),
+                    xFocusedSecondsPercentage = 100 - xNotFocusedSecondsPercentage;
 
                 string xFriendlyString = FormattableString.Invariant (
 $@"{IsValuableToFriendlyString (true)}: {SecondsToString (xValuableSeconds)}（{xValuableSecondsPercentage}％）
-    {IsDisorientedToFriendlyString (true)}: {SecondsToString (xValuableAndDisorientedSeconds)}（{xValuableAndDisorientedSecondsPercentage}％）
-    {IsDisorientedToFriendlyString (false)}: {SecondsToString (xValuableAndNotDisorientedSeconds)}（{xValuableAndNotDisorientedSecondsPercentage}％）
+    {IsFocusedToFriendlyString (true)}: {SecondsToString (xValuableAndFocusedSeconds)}（{xValuableAndFocusedSecondsPercentage}％）
+    {IsFocusedToFriendlyString (false)}: {SecondsToString (xValuableAndNotFocusedSeconds)}（{xValuableAndNotFocusedSecondsPercentage}％）
 {IsValuableToFriendlyString (false)}: {SecondsToString (xNotValuableSeconds)}（{xNotValuableSecondsPercentage}％）
-    {IsDisorientedToFriendlyString (true)}: {SecondsToString (xNotValuableAndDisorientedSeconds)}（{xNotValuableAndDisorientedSecondsPercentage}％）
-    {IsDisorientedToFriendlyString (false)}: {SecondsToString (xNotValuableAndNotDisorientedSeconds)}（{xNotValuableAndNotDisorientedSecondsPercentage}％）
+    {IsFocusedToFriendlyString (true)}: {SecondsToString (xNotValuableAndFocusedSeconds)}（{xNotValuableAndFocusedSecondsPercentage}％）
+    {IsFocusedToFriendlyString (false)}: {SecondsToString (xNotValuableAndNotFocusedSeconds)}（{xNotValuableAndNotFocusedSecondsPercentage}％）
 -------------------------
-{IsDisorientedToFriendlyString (true)}: {SecondsToString (xDisorientedSeconds)}（{xDisorientedSecondsPercentage}％）
-{IsDisorientedToFriendlyString (false)}: {SecondsToString (xNotDisorientedSeconds)}（{xNotDisorientedSecondsPercentage}％）");
+{IsFocusedToFriendlyString (true)}: {SecondsToString (xFocusedSeconds)}（{xFocusedSecondsPercentage}％）
+{IsFocusedToFriendlyString (false)}: {SecondsToString (xNotFocusedSeconds)}（{xNotFocusedSecondsPercentage}％）");
 
                 return (x.Date, FriendlyString: xFriendlyString);
             }).
