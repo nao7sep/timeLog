@@ -686,7 +686,7 @@ namespace timeLog
         {
             try
             {
-                iShared.Session.SetString ("IsFocused", (!mIsFocused.IsChecked!.Value).ToString ());
+                iShared.Session.SetString ("IsFocused", mIsFocused.IsChecked!.Value.ToString ());
                 // iShared.Session.Save ();
                 iShared.SavePreviousInfo (immediately: false);
 
